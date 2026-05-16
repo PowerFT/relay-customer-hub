@@ -1,10 +1,9 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
-
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { db, schema } from "@/db";
 import { publish } from "@/lib/pusher/server";
+import { verifyWebhookSignature } from "@/lib/ghl/webhook-keys";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,19 +48,6 @@ type GhlWebhookPayload =
   | InboundOutboundPayload
   | UnreadUpdatePayload
   | { type: string; eventId?: string; messageId?: string; locationId?: string };
-
-function verifySignature(rawBody: string, signature: string | null, secret: string): boolean {
-  if (!signature) return false;
-  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
-  // Allow common HMAC formats: bare hex or `sha256=<hex>`.
-  const provided = signature.replace(/^sha256=/, "");
-  if (provided.length !== expected.length) return false;
-  try {
-    return timingSafeEqual(Buffer.from(expected, "hex"), Buffer.from(provided, "hex"));
-  } catch {
-    return false;
-  }
-}
 
 function externalIdFor(payload: GhlWebhookPayload): string | null {
   if ("messageId" in payload && payload.messageId) return payload.messageId;
@@ -197,18 +183,10 @@ async function handleUnreadUpdate(payload: UnreadUpdatePayload) {
 }
 
 export async function POST(req: Request) {
-  const secret = process.env.GHL_WEBHOOK_SECRET;
-  if (!secret || secret === "TODO") {
-    return NextResponse.json(
-      { error: "GHL_WEBHOOK_SECRET not set" },
-      { status: 500 },
-    );
-  }
-
   const rawBody = await req.text();
-  const signature = req.headers.get("x-wh-signature") ?? req.headers.get("x-ghl-signature");
-  if (!verifySignature(rawBody, signature, secret)) {
-    console.warn("ghl webhook bad signature");
+  const result = verifyWebhookSignature(rawBody, req.headers);
+  if (!result.verified) {
+    console.warn("ghl webhook rejected:", result.reason);
     return NextResponse.json({ error: "invalid signature" }, { status: 401 });
   }
 
