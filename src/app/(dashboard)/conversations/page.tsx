@@ -1,9 +1,11 @@
 "use client";
 
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useSyncExternalStore } from "react";
 import { MessageSquare, PanelRightOpen } from "lucide-react";
 
+import { ChannelRail } from "@/components/conversations/channel-rail";
+import type { ChannelKey } from "@/hooks/use-channel-counts";
 import { cn } from "@/lib/utils";
 
 /**
@@ -37,7 +39,7 @@ export default function ConversationsPage() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const channelFilter = (searchParams.get("channel") ?? "all") as ChannelFilter;
+  const channelFilter = (searchParams.get("channel") ?? "all") as ChannelKey;
   const activeConversationId = searchParams.get("id");
   const panelExplicit = searchParams.get("panel");
 
@@ -56,13 +58,6 @@ export default function ConversationsPage() {
     [pathname, router, searchParams],
   );
 
-  // If the viewport drops below the breakpoint and panel wasn't explicitly
-  // set, snap it closed — saves the user a click on tablet.
-  useEffect(() => {
-    if (panelExplicit) return;
-    // Just relying on derived `panelOpen` above; no state to push.
-  }, [panelExplicit, isWide]);
-
   return (
     <div
       className={cn(
@@ -72,9 +67,11 @@ export default function ConversationsPage() {
           : "grid-cols-[72px_340px_1fr]",
       )}
     >
-      <ChannelRailPlaceholder
+      <ChannelRail
         active={channelFilter}
         onChange={(v) => setParam("channel", v === "all" ? null : v)}
+        locationId="all"
+        pusherChannel={null}
       />
 
       <ConversationListPlaceholder
@@ -102,46 +99,9 @@ export default function ConversationsPage() {
 }
 
 // ─── Placeholders ────────────────────────────────────────────────────────────
-// Rows 13/14/15/17 replace these with the real implementations in
-// src/components/conversations/{channel-rail,conversation-list,thread,contact-panel}.tsx
-
-type ChannelFilter = "all" | "whatsapp" | "messenger" | "instagram" | "email" | string;
-
-function ChannelRailPlaceholder({
-  active,
-  onChange,
-}: {
-  active: ChannelFilter;
-  onChange: (v: ChannelFilter) => void;
-}) {
-  const chips: { id: ChannelFilter; label: string }[] = [
-    { id: "all", label: "All" },
-    { id: "whatsapp", label: "WA" },
-    { id: "messenger", label: "FB" },
-    { id: "instagram", label: "IG" },
-    { id: "email", label: "EM" },
-  ];
-  return (
-    <aside className="bg-canvas border-r border-border flex flex-col items-center gap-2.5 py-4 overflow-y-auto">
-      {chips.map((c) => (
-        <button
-          key={c.id}
-          type="button"
-          onClick={() => onChange(c.id)}
-          className={cn(
-            "w-14 h-14 rounded-2xl bg-surface shadow-sm border border-transparent text-xs font-medium text-text-secondary transition-all",
-            active === c.id && "border-primary/20 shadow-md scale-105",
-          )}
-        >
-          {c.label}
-        </button>
-      ))}
-      <p className="text-[10px] text-text-tertiary text-center mt-4 px-1">
-        Row 13 replaces this with the real rail.
-      </p>
-    </aside>
-  );
-}
+// Rows 14/15/17 replace these with real implementations in
+// src/components/conversations/{conversation-list,thread,contact-panel}.tsx
+// Row 13 already replaced the ChannelRail above.
 
 function ConversationListPlaceholder({
   activeId,
@@ -150,7 +110,7 @@ function ConversationListPlaceholder({
 }: {
   activeId: string | null;
   onPick: (id: string) => void;
-  channelFilter: ChannelFilter;
+  channelFilter: ChannelKey;
 }) {
   return (
     <div className="bg-surface border-r border-border flex flex-col min-h-0">
