@@ -1,9 +1,11 @@
 "use client";
 
 import { formatRelative, isSameDay, format } from "date-fns";
-import { MessageSquare, MoreHorizontal, Bell, Tag, UserPlus, Check } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { MessageSquare, MoreHorizontal, Bell, Tag, Check, UserPlus } from "lucide-react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useHotkeys } from "react-hotkeys-hook";
 
+import { AssignDropdown } from "@/components/conversations/assign-dropdown";
 import { Composer } from "@/components/conversations/composer";
 import { MessageBubble } from "@/components/conversations/message-bubble";
 import { useConversation } from "@/hooks/use-conversation";
@@ -17,6 +19,11 @@ export function Thread({ conversationId }: { conversationId: string }) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const wasAtBottomRef = useRef(true);
   const lastMsgIdRef = useRef<string | null>(null);
+  const [assignOpen, setAssignOpen] = useState(false);
+
+  useHotkeys("a", () => setAssignOpen(true), {
+    enableOnFormTags: false,
+  }, [setAssignOpen]);
 
   // Track whether user is near bottom before each render so we can decide
   // if a new inbound message should auto-scroll or be passive.
@@ -88,7 +95,13 @@ export function Thread({ conversationId }: { conversationId: string }) {
           </div>
         </div>
         <div className="flex gap-1">
-          <ActionButton title="Assign" icon={UserPlus} />
+          <AssignDropdown
+            conversationId={conversationId}
+            currentAssigneeId={conversation.assigneeId}
+            open={assignOpen}
+            onOpenChange={setAssignOpen}
+            trigger={<UserPlus size={18} />}
+          />
           <ActionButton title="Snooze" icon={Bell} />
           <ActionButton title="Tag" icon={Tag} />
           <ActionButton title="Resolve" icon={Check} />
