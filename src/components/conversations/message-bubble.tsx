@@ -1,4 +1,9 @@
-import { Check, CheckCheck, File as FileIcon } from "lucide-react";
+"use client";
+
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, Check, CheckCheck, File as FileIcon, RotateCw } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
 
 import type { ThreadMessage } from "@/hooks/use-messages";
 import { cn } from "@/lib/utils";
@@ -27,9 +32,11 @@ function ReadReceipt({ status, readAt, deliveredAt }: { status: string; readAt: 
 export function MessageBubble({
   message,
   showAuthorMeta,
+  conversationId,
 }: {
   message: ThreadMessage;
   showAuthorMeta: boolean;
+  conversationId?: string;
 }) {
   const isOut = message.direction === "outbound";
   const time = message.sentAt
@@ -38,6 +45,8 @@ export function MessageBubble({
   const attachments = Array.isArray(message.attachments)
     ? (message.attachments as Attachment[])
     : [];
+
+  const isFailed = message.status === "failed";
 
   return (
     <div className={cn("flex flex-col gap-0.5 mb-2 max-w-[70%]", isOut ? "self-end items-end" : "self-start")}>
@@ -52,6 +61,7 @@ export function MessageBubble({
           isOut
             ? "bg-primary-soft text-text-primary rounded-br-sm"
             : "bg-surface border border-border text-text-primary rounded-bl-sm",
+          isFailed && "border border-danger/40 bg-danger/5",
         )}
       >
         {attachments.map((att, i) =>
@@ -75,6 +85,75 @@ export function MessageBubble({
           )}
         </div>
       </div>
+      {isFailed && conversationId && (
+        <FailedActions message={message} conversationId={conversationId} />
+      )}
+    </div>
+  );
+}
+
+function FailedActions({
+  message,
+  conversationId,
+}: {
+  message: ThreadMessage;
+  conversationId: string;
+}) {
+  const queryClient = useQueryClient();
+  const [retrying, setRetrying] = useState(false);
+
+  const retry = useMutation({
+    mutationFn: async () => {
+      setRetrying(true);
+      const res = await fetch(`/api/conversations/${conversationId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tempId: message.id, body: message.body ?? "" }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData<{ pages: { items: ThreadMessage[] }[] }>(
+        ["messages", conversationId],
+        (prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            pages: prev.pages.map((p, i) =>
+              i === prev.pages.length - 1
+                ? {
+                    ...p,
+                    items: p.items.map((m) =>
+                      m.id === message.id ? (data as { message: ThreadMessage }).message : m,
+                    ),
+                  }
+                : p,
+            ),
+          };
+        },
+      );
+      setRetrying(false);
+    },
+    onError: (err) => {
+      setRetrying(false);
+      toast.error(err instanceof Error ? err.message : "Retry failed");
+    },
+  });
+
+  return (
+    <div className="flex items-center gap-1.5 text-[11px] text-danger px-1 mt-1">
+      <AlertCircle size={12} />
+      <span>Failed to send.</span>
+      <button
+        type="button"
+        onClick={() => retry.mutate()}
+        disabled={retrying}
+        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-danger/10 font-medium"
+      >
+        <RotateCw size={11} className={cn(retrying && "animate-spin")} />
+        Retry
+      </button>
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { formatDistanceToNow } from "date-fns";
 import Link from "next/link";
-import { Plug } from "lucide-react";
+import { AlertTriangle, Plug } from "lucide-react";
 
 import { db, schema } from "@/db";
 import { eq } from "drizzle-orm";
@@ -84,6 +84,18 @@ export default async function LocationsPage() {
           </Link>
         )}
       </header>
+
+      {rows.some((r) => r.status === "token_expired") && (
+        <div className="mb-4 px-4 py-3 rounded-xl bg-danger/10 border border-danger/30 text-sm flex items-center gap-2.5">
+          <AlertTriangle size={16} className="text-danger" />
+          <div className="flex-1">
+            <strong className="text-text-primary">One or more tokens expired.</strong>{" "}
+            <span className="text-text-secondary">
+              Click <em>Connect another</em> on the affected location to refresh authorization.
+            </span>
+          </div>
+        </div>
+      )}
 
       {remaining > 0 && rows.length > 0 && (
         <div className="mb-6 px-4 py-3 rounded-xl bg-warning/10 border border-warning/30 text-sm text-warning-foreground flex items-center gap-2">
