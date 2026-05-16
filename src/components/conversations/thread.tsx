@@ -8,6 +8,8 @@ import { useHotkeys } from "react-hotkeys-hook";
 import { AssignDropdown } from "@/components/conversations/assign-dropdown";
 import { Composer } from "@/components/conversations/composer";
 import { MessageBubble } from "@/components/conversations/message-bubble";
+import { useResolveActions } from "@/components/conversations/resolve-button";
+import { SnoozeMenu } from "@/components/conversations/snooze-menu";
 import { useConversation } from "@/hooks/use-conversation";
 import { useMessages, type ThreadMessage } from "@/hooks/use-messages";
 import { cn } from "@/lib/utils";
@@ -20,10 +22,12 @@ export function Thread({ conversationId }: { conversationId: string }) {
   const wasAtBottomRef = useRef(true);
   const lastMsgIdRef = useRef<string | null>(null);
   const [assignOpen, setAssignOpen] = useState(false);
+  const [snoozeOpen, setSnoozeOpen] = useState(false);
+  const { resolve } = useResolveActions(conversationId);
 
-  useHotkeys("a", () => setAssignOpen(true), {
-    enableOnFormTags: false,
-  }, [setAssignOpen]);
+  useHotkeys("a", () => setAssignOpen(true), { enableOnFormTags: false }, [setAssignOpen]);
+  useHotkeys("s", () => setSnoozeOpen(true), { enableOnFormTags: false }, [setSnoozeOpen]);
+  useHotkeys("e", () => resolve(), { enableOnFormTags: false }, [resolve]);
 
   // Track whether user is near bottom before each render so we can decide
   // if a new inbound message should auto-scroll or be passive.
@@ -102,9 +106,31 @@ export function Thread({ conversationId }: { conversationId: string }) {
             onOpenChange={setAssignOpen}
             trigger={<UserPlus size={18} />}
           />
-          <ActionButton title="Snooze" icon={Bell} />
+          <SnoozeMenu
+            conversationId={conversationId}
+            open={snoozeOpen}
+            onOpenChange={setSnoozeOpen}
+            trigger={
+              <button
+                type="button"
+                title="Snooze (S)"
+                aria-label="Snooze"
+                className="w-9 h-9 rounded-[10px] text-text-secondary hover:bg-canvas hover:text-text-primary flex items-center justify-center"
+              >
+                <Bell size={18} />
+              </button>
+            }
+          />
           <ActionButton title="Tag" icon={Tag} />
-          <ActionButton title="Resolve" icon={Check} />
+          <button
+            type="button"
+            onClick={() => resolve()}
+            title="Resolve (E)"
+            aria-label="Resolve"
+            className="w-9 h-9 rounded-[10px] text-text-secondary hover:bg-canvas hover:text-text-primary flex items-center justify-center"
+          >
+            <Check size={18} />
+          </button>
           <ActionButton title="More" icon={MoreHorizontal} />
         </div>
       </header>
