@@ -5,6 +5,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import { MessageSquare, PanelRightOpen } from "lucide-react";
 
 import { ChannelRail } from "@/components/conversations/channel-rail";
+import { ConversationList } from "@/components/conversations/conversation-list";
 import type { ChannelKey } from "@/hooks/use-channel-counts";
 import { cn } from "@/lib/utils";
 
@@ -74,10 +75,24 @@ export default function ConversationsPage() {
         pusherChannel={null}
       />
 
-      <ConversationListPlaceholder
+      <ConversationList
+        filters={{
+          locationId: "all",
+          channel: channelFilter,
+          status: (searchParams.get("status") as "open" | "snoozed" | "closed") ?? "open",
+          search: searchParams.get("q") ?? undefined,
+        }}
+        onFiltersChange={(next) => {
+          if (next.status !== ((searchParams.get("status") as string) ?? "open")) {
+            setParam("status", next.status === "open" ? null : next.status);
+          }
+          if ((next.search ?? "") !== (searchParams.get("q") ?? "")) {
+            setParam("q", next.search ?? null);
+          }
+        }}
         activeId={activeConversationId}
         onPick={(id) => setParam("id", id)}
-        channelFilter={channelFilter}
+        pusherChannel={null}
       />
 
       {activeConversationId ? (
@@ -99,50 +114,7 @@ export default function ConversationsPage() {
 }
 
 // ─── Placeholders ────────────────────────────────────────────────────────────
-// Rows 14/15/17 replace these with real implementations in
-// src/components/conversations/{conversation-list,thread,contact-panel}.tsx
-// Row 13 already replaced the ChannelRail above.
-
-function ConversationListPlaceholder({
-  activeId,
-  onPick,
-  channelFilter,
-}: {
-  activeId: string | null;
-  onPick: (id: string) => void;
-  channelFilter: ChannelKey;
-}) {
-  return (
-    <div className="bg-surface border-r border-border flex flex-col min-h-0">
-      <div className="p-4 border-b border-border">
-        <p className="text-sm font-semibold">Conversations</p>
-        <p className="text-xs text-text-secondary">
-          channel: <span className="font-mono">{channelFilter}</span>
-        </p>
-      </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        <p className="text-xs text-text-tertiary">
-          Row 14 replaces this with paginated, real-time conversation list.
-        </p>
-        {/* Demo rows so the layout breathes during dev */}
-        {[1, 2, 3].map((n) => (
-          <button
-            key={n}
-            type="button"
-            onClick={() => onPick(`demo-${n}`)}
-            className={cn(
-              "w-full text-left p-3 rounded-lg border border-border hover:bg-canvas",
-              activeId === `demo-${n}` && "bg-primary-soft border-primary/30",
-            )}
-          >
-            <div className="text-sm font-medium">Demo conversation {n}</div>
-            <div className="text-xs text-text-secondary mt-1">Click to load thread →</div>
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+// Rows 15/17 replace these. Rows 13/14 already wired the real components above.
 
 function ThreadPlaceholder({ conversationId }: { conversationId: string }) {
   return (
