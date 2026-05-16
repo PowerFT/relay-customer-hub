@@ -1,5 +1,7 @@
 import { CheckCircle2, MailOpen, MessageSquare, MessagesSquare } from "lucide-react";
 
+import { MessageVolumeChart } from "@/components/dashboard/message-volume-chart";
+import { ResponseTimeChart } from "@/components/dashboard/response-time-chart";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { getCurrentUser } from "@/lib/auth";
 import { fetchStats } from "@/lib/dashboard/stats";
@@ -23,7 +25,7 @@ export default async function DashboardPage() {
           {greeting()}, {firstName}
         </h1>
         <p className="text-sm text-text-secondary mt-1">
-          Inbox snapshot — last 7 days. Charts and the activity feed land in Row 21/22.
+          Inbox snapshot — last 7 days. Activity feed lands in Row 22.
         </p>
       </header>
 
@@ -70,6 +72,11 @@ export default async function DashboardPage() {
           rightValue={stats.resolvedToday.escalated}
           trendPct={stats.resolvedToday.trendPct}
         />
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <MessageVolumeChart />
+        <ResponseTimeChart />
       </section>
     </main>
   );
