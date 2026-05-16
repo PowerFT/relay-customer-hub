@@ -6,6 +6,7 @@ import { MessageSquare, PanelRightOpen } from "lucide-react";
 
 import { ChannelRail } from "@/components/conversations/channel-rail";
 import { ConversationList } from "@/components/conversations/conversation-list";
+import { Thread } from "@/components/conversations/thread";
 import type { ChannelKey } from "@/hooks/use-channel-counts";
 import { cn } from "@/lib/utils";
 
@@ -96,7 +97,7 @@ export default function ConversationsPage() {
       />
 
       {activeConversationId ? (
-        <ThreadPlaceholder conversationId={activeConversationId} />
+        <Thread conversationId={activeConversationId} />
       ) : (
         <ThreadEmptyState />
       )}
@@ -114,21 +115,7 @@ export default function ConversationsPage() {
 }
 
 // ─── Placeholders ────────────────────────────────────────────────────────────
-// Rows 15/17 replace these. Rows 13/14 already wired the real components above.
-
-function ThreadPlaceholder({ conversationId }: { conversationId: string }) {
-  return (
-    <div className="bg-[#FBFCFD] flex flex-col min-h-0">
-      <header className="h-16 bg-surface border-b border-border px-5 flex items-center">
-        <p className="text-sm font-semibold">Thread — {conversationId}</p>
-      </header>
-      <div className="flex-1 p-6 text-sm text-text-secondary overflow-y-auto">
-        Row 15 replaces this with bubbles, date dividers, read receipts, attachments.
-        Row 16 adds the composer at the bottom.
-      </div>
-    </div>
-  );
-}
+// Row 17 replaces these. Rows 13/14/15 wired the real components above.
 
 function ThreadEmptyState() {
   return (
