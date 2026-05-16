@@ -1,5 +1,7 @@
 import { CheckCircle2, MailOpen, MessageSquare, MessagesSquare } from "lucide-react";
 
+import { ComingSoonCard } from "@/components/dashboard/coming-soon-card";
+import { LatestActivityCard } from "@/components/dashboard/latest-activity-card";
 import { MessageVolumeChart } from "@/components/dashboard/message-volume-chart";
 import { ResponseTimeChart } from "@/components/dashboard/response-time-chart";
 import { StatCard } from "@/components/dashboard/stat-card";
@@ -77,6 +79,18 @@ export default async function DashboardPage() {
       <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <MessageVolumeChart />
         <ResponseTimeChart />
+      </section>
+
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <ComingSoonCard
+          title="Agent Performance"
+          body="Handled-conversations and avg response time per agent."
+        />
+        <ComingSoonCard
+          title="Channel Mix"
+          body="Donut breakdown by channel."
+        />
+        <LatestActivityCard pusherChannel={null} />
       </section>
     </main>
   );
