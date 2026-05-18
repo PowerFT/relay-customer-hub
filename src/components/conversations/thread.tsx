@@ -150,6 +150,7 @@ export function Thread({ conversationId }: { conversationId: string }) {
 
       <Composer
         conversationId={conversationId}
+        channel={conversation.channel}
         lastInboundAt={conversation.lastInboundAt}
       />
     </div>
@@ -166,10 +167,20 @@ function renderMessages(items: ThreadMessage[], conversationId: string) {
       out.push(<DateDivider key={`d-${i}`} date={d} />);
     }
     prevDate = d ?? prevDate;
+
+    // System events (assignment, resolve/reopen, snooze) render as centered
+    // gray text per design §5.3 — not as inbound/outbound bubbles.
+    if (m.direction === "system") {
+      out.push(<SystemEvent key={m.id}>{m.body ?? "Update"}</SystemEvent>);
+      continue;
+    }
+
+    const prev = items[i - 1];
     const showAuthorMeta =
       i === 0 ||
-      items[i - 1].direction !== m.direction ||
-      items[i - 1].authorId !== m.authorId;
+      prev?.direction === "system" ||
+      prev?.direction !== m.direction ||
+      prev?.authorId !== m.authorId;
     out.push(
       <MessageBubble
         key={m.id}
@@ -180,6 +191,14 @@ function renderMessages(items: ThreadMessage[], conversationId: string) {
     );
   }
   return out;
+}
+
+function SystemEvent({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="self-center text-[11px] text-text-tertiary my-2.5 max-w-[70%] text-center">
+      {children}
+    </div>
+  );
 }
 
 function ActionButton({ title, icon: Icon }: { title: string; icon: React.ComponentType<{ size?: number }> }) {

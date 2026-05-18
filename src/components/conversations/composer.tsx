@@ -33,11 +33,34 @@ function makeTempId(): string {
 
 type SendResponse = { message: ThreadMessage; tempId: string | null };
 
+const CHANNEL_LABELS: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  messenger: "Messenger",
+  instagram: "Instagram",
+  tiktok: "TikTok",
+  linkedin: "LinkedIn",
+  webchat: "Webchat",
+  email: "Email",
+  sms: "SMS",
+};
+const CHANNEL_COLOR_VARS: Record<string, string> = {
+  whatsapp: "var(--color-c-whatsapp)",
+  messenger: "var(--color-c-messenger)",
+  instagram: "var(--color-c-instagram)",
+  tiktok: "var(--color-c-tiktok)",
+  linkedin: "var(--color-c-linkedin)",
+  webchat: "var(--color-c-webchat)",
+  email: "var(--color-c-email)",
+  sms: "var(--color-c-sms)",
+};
+
 export function Composer({
   conversationId,
+  channel,
   lastInboundAt,
 }: {
   conversationId: string;
+  channel: string;
   lastInboundAt: string | null;
 }) {
   const [value, setValue] = useState("");
@@ -201,7 +224,7 @@ export function Composer({
       {!insideWindow ? (
         <OutsideWindowBanner onOpenTemplates={() => setTemplateOpen(true)} />
       ) : (
-        <ChannelPill />
+        <ChannelPill channel={channel} />
       )}
 
       <div
@@ -247,13 +270,22 @@ export function Composer({
   );
 }
 
-function ChannelPill() {
+function ChannelPill({ channel }: { channel: string }) {
+  const label = CHANNEL_LABELS[channel] ?? channel;
+  const color = CHANNEL_COLOR_VARS[channel] ?? "#9CA3AF";
   return (
-    <div className="inline-flex items-center gap-2 pl-1 pr-2.5 py-0.5 rounded-full bg-c-whatsapp/15 text-c-whatsapp text-[12px] font-medium mb-2">
-      <span className="w-5 h-5 rounded-full bg-c-whatsapp text-white flex items-center justify-center text-[10px]">
-        W
+    <div
+      className="inline-flex items-center gap-2 pl-1 pr-2.5 py-0.5 rounded-full text-[12px] font-medium mb-2"
+      // 15% tinted background of the channel color; text matches the brand color.
+      style={{ background: `color-mix(in srgb, ${color} 15%, transparent)`, color }}
+    >
+      <span
+        className="w-5 h-5 rounded-full text-white flex items-center justify-center text-[10px] font-bold"
+        style={{ background: color }}
+      >
+        {label.charAt(0)}
       </span>
-      Replying via WhatsApp
+      Replying via {label}
     </div>
   );
 }
