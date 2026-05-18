@@ -5,6 +5,7 @@ import { MessageCircle, X } from "lucide-react";
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 
+import { AssignDropdown } from "@/components/conversations/assign-dropdown";
 import { useConversation } from "@/hooks/use-conversation";
 import { useContactHistory } from "@/hooks/use-contact-history";
 import { useNotes } from "@/hooks/use-notes";
@@ -126,8 +127,31 @@ function ContactTab({
       </Section>
 
       <Section title="Assigned to">
-        <div className="text-sm text-text-secondary">
-          {conversation.assigneeName ?? "Unassigned"} — picker arrives in Row 18.
+        <div className="flex items-center justify-between gap-2 bg-canvas rounded-lg p-2.5 text-[13px]">
+          <div className="flex items-center gap-2 min-w-0">
+            {conversation.assigneeName ? (
+              <>
+                <span
+                  className="w-6 h-6 rounded-full text-[11px] font-bold text-text-primary inline-flex items-center justify-center"
+                  style={{ background: conversation.assigneeTone ?? "#DDE2EC" }}
+                >
+                  {conversation.assigneeInitials ?? "?"}
+                </span>
+                <span className="truncate">{conversation.assigneeName}</span>
+              </>
+            ) : (
+              <span className="text-text-secondary">Unassigned</span>
+            )}
+          </div>
+          <AssignDropdown
+            conversationId={conversation.id}
+            currentAssigneeId={conversation.assigneeId}
+            trigger={
+              <span className="text-xs px-2 py-1 rounded-md border border-border bg-surface text-text-secondary hover:text-text-primary">
+                Change
+              </span>
+            }
+          />
         </div>
       </Section>
     </div>
