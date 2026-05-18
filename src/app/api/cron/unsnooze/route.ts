@@ -8,13 +8,22 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Vercel Cron handler — every 5 minutes. Finds conversations whose snooze
- * window has elapsed, flips them back to 'open', writes a system message,
- * and fires the realtime fan-out so any open UI updates.
+ * Unsnooze cron handler. Finds conversations whose snooze window has
+ * elapsed, flips them back to 'open', writes a system message, and fires
+ * the realtime fan-out so any open UI updates.
  *
- * Protection: `Authorization: Bearer ${CRON_SECRET}`. Vercel's scheduler
- * injects this header (configured in vercel.json crons). The route is also
- * dynamic so the request is never cached.
+ * Scheduling: driven by an EXTERNAL cron service (e.g. cron-job.org,
+ * EasyCron) configured to GET this URL every 5 minutes. Vercel Hobby
+ * caps native crons at once-daily, so we keep the route public-but-
+ * authed and let an external tickler call it on the cadence we want.
+ *
+ * Configure:
+ *   URL:        https://relay-customer-hub.vercel.app/api/cron/unsnooze
+ *   Schedule:   every 5 minutes
+ *   Header:     Authorization: Bearer ${CRON_SECRET}
+ *
+ * Protection: `Authorization: Bearer ${CRON_SECRET}`. Route is `dynamic`
+ * so the response is never cached.
  */
 export async function GET(req: Request) {
   const expected = process.env.CRON_SECRET;
