@@ -1,6 +1,6 @@
 "use client";
 
-import { formatRelative, isSameDay, format } from "date-fns";
+import { formatRelative, isSameDay, isToday, isYesterday, format } from "date-fns";
 import { MessageSquare, MoreHorizontal, Bell, Tag, Check, UserPlus } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
@@ -196,9 +196,14 @@ function ActionButton({ title, icon: Icon }: { title: string; icon: React.Compon
 }
 
 function DateDivider({ date }: { date: Date }) {
+  const label = isToday(date)
+    ? "Today"
+    : isYesterday(date)
+      ? "Yesterday"
+      : format(date, "EEE, d LLL");
   return (
     <div className="self-center bg-black/5 text-text-secondary text-[11px] font-medium px-3 py-1 rounded-full my-4">
-      {format(date, "EEE, d LLL")}
+      {label}
     </div>
   );
 }

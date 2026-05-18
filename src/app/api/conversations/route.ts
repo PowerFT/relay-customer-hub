@@ -46,6 +46,7 @@ export async function GET(req: Request) {
   const channel = url.searchParams.get("channel");
   const status = url.searchParams.get("status") ?? "open";
   const search = url.searchParams.get("search")?.trim();
+  const sort = url.searchParams.get("sort") ?? "newest";
   const cursor = url.searchParams.get("cursor");
   const limit = Math.min(
     Math.max(Number(url.searchParams.get("limit") ?? DEFAULT_LIMIT), 1),
@@ -131,7 +132,15 @@ export async function GET(req: Request) {
     .innerJoin(schema.contacts, eq(schema.contacts.id, schema.conversations.contactId))
     .leftJoin(assignee, eq(assignee.id, schema.conversations.assigneeId))
     .where(and(...whereClauses))
-    .orderBy(desc(schema.conversations.lastMessageAt), desc(schema.conversations.id))
+    .orderBy(
+      ...(sort === "unread"
+        ? [desc(schema.conversations.unreadCount), desc(schema.conversations.lastMessageAt), desc(schema.conversations.id)]
+        : sort === "priority"
+          ? [sql`CASE ${schema.conversations.priority} WHEN 'high' THEN 0 WHEN 'normal' THEN 1 ELSE 2 END`, desc(schema.conversations.lastMessageAt), desc(schema.conversations.id)]
+          : sort === "oldest"
+            ? [sql`${schema.conversations.lastMessageAt} ASC NULLS LAST`, sql`${schema.conversations.id} ASC`]
+            : [desc(schema.conversations.lastMessageAt), desc(schema.conversations.id)]),
+    )
     .limit(limit + 1);
 
   const hasMore = rows.length > limit;

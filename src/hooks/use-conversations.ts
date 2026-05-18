@@ -34,11 +34,14 @@ export type ConversationListPage = {
   counts: Record<"open" | "snoozed" | "closed", number>;
 };
 
+export type SortMode = "newest" | "oldest" | "unread" | "priority";
+
 export type ConversationFilters = {
   locationId: string;
   channel: string;
   status: "open" | "snoozed" | "closed";
   search?: string;
+  sort?: SortMode;
 };
 
 /**
@@ -72,6 +75,7 @@ export function useConversations(
       if (filters.channel) params.set("channel", filters.channel);
       params.set("status", filters.status);
       if (filters.search) params.set("search", filters.search);
+      if (filters.sort) params.set("sort", filters.sort);
       if (pageParam) params.set("cursor", pageParam);
       const res = await fetch(`/api/conversations?${params.toString()}`);
       if (!res.ok) throw new Error(`conversations ${res.status}`);

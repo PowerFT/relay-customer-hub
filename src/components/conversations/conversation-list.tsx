@@ -1,18 +1,32 @@
 "use client";
 
 import { formatDistanceToNowStrict } from "date-fns";
-import { MessageCircle, MessageSquare, Search } from "lucide-react";
+import { ChevronDown, MessageCircle, MessageSquare, Search } from "lucide-react";
 import { useEffect } from "react";
 import { useInView } from "react-intersection-observer";
 
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   type ConversationFilters,
   type ConversationListItem as ConversationItem,
+  type SortMode,
   useConversations,
 } from "@/hooks/use-conversations";
 import { cn } from "@/lib/utils";
 
 type Tab = "open" | "snoozed" | "closed";
+
+const SORT_LABEL: Record<SortMode, string> = {
+  newest: "Newest",
+  oldest: "Oldest",
+  unread: "Unread first",
+  priority: "Priority",
+};
 
 export function ConversationList({
   filters,
@@ -82,6 +96,26 @@ export function ConversationList({
             </button>
           ))}
         </div>
+
+        <div className="flex justify-end">
+          <DropdownMenu>
+            <DropdownMenuTrigger className="inline-flex items-center gap-1 text-[11px] text-text-secondary hover:text-text-primary px-1.5">
+              Sort: {SORT_LABEL[filters.sort ?? "newest"]}
+              <ChevronDown size={12} />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="min-w-36">
+              {(Object.keys(SORT_LABEL) as SortMode[]).map((mode) => (
+                <DropdownMenuItem
+                  key={mode}
+                  onClick={() => onFiltersChange({ ...filters, sort: mode })}
+                  className="px-3 py-1.5 text-sm cursor-pointer hover:bg-canvas"
+                >
+                  {SORT_LABEL[mode]}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {/* List */}
@@ -147,11 +181,17 @@ function ConversationListItemRow({
         <span className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary" aria-hidden />
       )}
       <div className="relative">
+        {/* Channel-color ring around the avatar (per design.md §5.2) */}
         <div
-          className="w-11 h-11 rounded-full flex items-center justify-center text-[13px] font-semibold flex-shrink-0"
-          style={{ background: c.contactTone ?? "#DDE2EC", color: "#1A1F2E" }}
+          className="w-11 h-11 rounded-full p-[2px] flex-shrink-0"
+          style={{ background: channelColor(c.channel) }}
         >
-          {initials}
+          <div
+            className="w-full h-full rounded-full flex items-center justify-center text-[13px] font-semibold bg-surface"
+            style={{ background: c.contactTone ?? "#DDE2EC", color: "#1A1F2E" }}
+          >
+            {initials}
+          </div>
         </div>
         <span
           className="absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-surface flex items-center justify-center text-white"

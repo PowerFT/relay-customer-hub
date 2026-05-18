@@ -81,6 +81,13 @@ export default async function DashboardPage() {
         <ResponseTimeChart />
       </section>
 
+      <section>
+        <ComingSoonCard
+          title="Activity by Channel"
+          body="World map + per-channel volume breakdown."
+        />
+      </section>
+
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <ComingSoonCard
           title="Agent Performance"
