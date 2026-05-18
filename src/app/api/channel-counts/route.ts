@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { db, schema } from "@/db";
 import { requireCurrentUser } from "@/lib/auth";
+import { parseFiltersFromRequest, whereForFilters } from "@/lib/conversations/filters";
 
 export const runtime = "nodejs";
 
@@ -45,6 +46,12 @@ export async function GET(req: Request) {
       )`,
     );
   }
+  // Agent + channel-instance filters from the dashboard chip row. When
+  // ?agents=sara is set, the rail badges narrow to Sara's conversations
+  // (per spec). Channel-instance filters constrain to (channel, location)
+  // pairs the same way.
+  const dashboardFilters = parseFiltersFromRequest(url);
+  whereClauses.push(...(await whereForFilters(dashboardFilters)));
 
   const rows = await db
     .select({

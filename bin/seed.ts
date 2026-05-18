@@ -1,37 +1,86 @@
 /**
- * Seed dummy data so the dashboard and conversations UI have something to show
- * before the first real HighLevel message arrives.
+ * Seed dummy data so the dashboard and conversations UI have something to
+ * show before the first real HighLevel message arrives.
  *
  * Usage:
- *   pnpm db:seed                # additive — adds a fresh batch each run
- *   pnpm db:seed -- --reset     # truncates the demo tables first
+ *   pnpm db:seed                # idempotent — re-runs wipe seeded rows first
+ *   pnpm db:seed -- --reset     # truncates EVERYTHING (incl. real rows)
+ *
+ * The seed mirrors the dashboard's mock-data distribution exactly so the two
+ * screens cross-reconcile: same 6 agents (sara/tom/maya/devon/priya/alex),
+ * same 4 locations (loc_dubai/loc_alain/loc_abudhabi/loc_main), same
+ * agent→channel affinity. Stable slug IDs live on `users.clerkId` and
+ * `locations.ghlLocationId` as `seed_<slug>` so the API routes can translate
+ * the dashboard's string filter IDs to DB UUIDs.
  *
  * Identifies the owner via the first row in `users` (which the Clerk webhook
  * populates on first sign-in). If `users` is empty, aborts with a hint.
  */
 
-import { sql } from "drizzle-orm";
+import { eq, like, sql } from "drizzle-orm";
 
 import { db, schema } from "../src/db";
 
 const args = process.argv.slice(2);
-const RESET = args.includes("--reset");
+const HARD_RESET = args.includes("--reset");
 
-const CHANNELS = ["whatsapp", "messenger", "instagram", "webchat", "email"] as const;
-const STATUSES = ["open", "open", "open", "open", "snoozed", "closed"] as const; // bias towards open
-const PRIORITIES = ["normal", "normal", "normal", "high"] as const;
-const TONES = ["#A7CAF0", "#F4C9D2", "#C9F0DA", "#F5E4A8", "#D1C4E9", "#FFB5A7"];
+// ─── Mirrors src/lib/dashboard/mock-data.ts ────────────────────────────────
 
-const FIRST_NAMES = [
-  "Maria", "Tom", "Sara", "Alex", "Priya", "Diego", "Anna", "Wei",
-  "Liam", "Noor", "James", "Olivia", "Kenji", "Fatima", "Sofia",
+const AGENTS = [
+  { slug: "sara", name: "Sara Chen", email: "sara@example.com", initials: "SC", tone: "#F8C" },
+  { slug: "tom", name: "Tom Patel", email: "tom@example.com", initials: "TP", tone: "#9AD" },
+  { slug: "maya", name: "Maya Williams", email: "maya@example.com", initials: "MW", tone: "#FCD" },
+  { slug: "devon", name: "Devon Reyes", email: "devon@example.com", initials: "DR", tone: "#CDA" },
+  { slug: "priya", name: "Priya Kapoor", email: "priya@example.com", initials: "PK", tone: "#FBA" },
+  { slug: "alex", name: "Alex Morgan", email: "alex@example.com", initials: "AM", tone: "#ACE" },
+] as const;
+
+const LOCATIONS = [
+  { slug: "loc_dubai", name: "Acme — Dubai", displayName: "Dubai branch", phone: "+971501110000" },
+  { slug: "loc_alain", name: "Acme — Al Ain", displayName: "Al Ain branch", phone: "+971501110001" },
+  { slug: "loc_abudhabi", name: "Acme — Abu Dhabi", displayName: "Abu Dhabi branch", phone: "+971501110002" },
+  { slug: "loc_main", name: "Acme — Main", displayName: "Main website", phone: "+14155550199" },
+] as const;
+
+type AgentSlug = (typeof AGENTS)[number]["slug"];
+type LocSlug = (typeof LOCATIONS)[number]["slug"];
+
+/** Each entry is (agent, channel, locationSlug, weight). Higher weight =
+ *  more conversations land here when generating the seed. */
+const AFFINITY: Array<{ agent: AgentSlug; channel: string; loc: LocSlug; w: number }> = [
+  // Sara → WhatsApp Dubai + Webchat
+  { agent: "sara", channel: "whatsapp", loc: "loc_dubai", w: 6 },
+  { agent: "sara", channel: "webchat", loc: "loc_main", w: 3 },
+  // Tom → WhatsApp Al Ain (primary)
+  { agent: "tom", channel: "whatsapp", loc: "loc_alain", w: 7 },
+  // Maya → Instagram + Messenger
+  { agent: "maya", channel: "instagram", loc: "loc_main", w: 4 },
+  { agent: "maya", channel: "messenger", loc: "loc_main", w: 3 },
+  // Devon → Email + Webchat
+  { agent: "devon", channel: "email", loc: "loc_main", w: 4 },
+  { agent: "devon", channel: "webchat", loc: "loc_main", w: 2 },
+  // Priya → SMS + WhatsApp Abu Dhabi
+  { agent: "priya", channel: "sms", loc: "loc_main", w: 3 },
+  { agent: "priya", channel: "whatsapp", loc: "loc_abudhabi", w: 3 },
+  // Alex → light mixed load
+  { agent: "alex", channel: "whatsapp", loc: "loc_dubai", w: 1 },
+  { agent: "alex", channel: "instagram", loc: "loc_main", w: 1 },
+  { agent: "alex", channel: "email", loc: "loc_main", w: 1 },
 ];
-const LAST_NAMES = [
-  "Lopez", "Patel", "Chen", "Müller", "Garcia", "Kim", "Singh",
-  "Rossi", "Hassan", "Yamada", "Andersson", "Costa", "Tanaka",
-];
 
-const SAMPLE_MESSAGES = [
+const CHANNEL_TONES: Record<string, string> = {
+  whatsapp: "#A7CAF0",
+  webchat: "#F4C9D2",
+  instagram: "#FCD",
+  messenger: "#C9F0DA",
+  email: "#F5E4A8",
+  sms: "#D1C4E9",
+};
+
+const FIRST_NAMES = ["Maria", "Tom", "Sara", "Alex", "Priya", "Diego", "Anna", "Wei", "Liam", "Noor", "James", "Olivia", "Kenji", "Fatima", "Sofia"];
+const LAST_NAMES = ["Lopez", "Patel", "Chen", "Müller", "Garcia", "Kim", "Singh", "Rossi", "Hassan", "Yamada", "Andersson", "Costa", "Tanaka"];
+
+const SAMPLE_INBOUND = [
   "Hi, is this still in stock?",
   "When will my order arrive?",
   "Thanks for the quick reply!",
@@ -41,15 +90,8 @@ const SAMPLE_MESSAGES = [
   "Just placed order #4521",
   "Could you update my address?",
   "Will you have the new sizes next week?",
-  "Following up on yesterday",
-  "Got it, thanks 👍",
-  "What's the warranty?",
-  "Can I reschedule to Friday?",
-  "Refund processed, see attached.",
-  "Looking forward to it.",
 ];
-
-const AGENT_REPLIES = [
+const SAMPLE_OUTBOUND = [
   "Sure — let me check on that.",
   "Yes, we still have it.",
   "Apologies for the delay, looking into it now.",
@@ -59,27 +101,42 @@ const AGENT_REPLIES = [
   "Order is out for delivery, should be there today.",
 ];
 
+const STATUS_BIAS = ["open", "open", "open", "open", "snoozed", "closed"] as const;
+const PRIORITIES = ["normal", "normal", "normal", "high"] as const;
+
+// ─── Deterministic helpers ────────────────────────────────────────────────
+
+function mulberry32(seed: number) {
+  let t = seed >>> 0;
+  return () => {
+    t = (t + 0x6d2b79f5) | 0;
+    let r = Math.imul(t ^ (t >>> 15), 1 | t);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const rand = mulberry32(20260518);
 function pick<T>(list: readonly T[]): T {
-  return list[Math.floor(Math.random() * list.length)];
+  return list[Math.floor(rand() * list.length)];
 }
 function randomDigits(n: number): string {
   let out = "";
-  for (let i = 0; i < n; i += 1) out += Math.floor(Math.random() * 10);
+  for (let i = 0; i < n; i += 1) out += Math.floor(rand() * 10);
   return out;
 }
-function minutesAgo(min: number, max: number): Date {
-  const ms = (min + Math.random() * (max - min)) * 60_000;
-  return new Date(Date.now() - ms);
-}
-function deriveInitials(name: string): string {
-  const parts = name.split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "??";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+function weightedPick<T>(weights: Array<[T, number]>): T {
+  const total = weights.reduce((s, [, w]) => s + w, 0);
+  let pick = rand() * total;
+  for (const [item, w] of weights) {
+    pick -= w;
+    if (pick <= 0) return item;
+  }
+  return weights[weights.length - 1][0];
 }
 
+// ─── Main ─────────────────────────────────────────────────────────────────
+
 async function main() {
-  // ── Owner ──────────────────────────────────────────────────────────────
   const owners = await db.select().from(schema.users).limit(1);
   if (owners.length === 0) {
     console.error(
@@ -90,196 +147,171 @@ async function main() {
   const owner = owners[0];
   console.log(`Seeding for user ${owner.name ?? owner.email ?? owner.id}`);
 
-  if (RESET) {
-    console.log("--reset: truncating notes / messages / webhook_events / conversations / contacts / locations");
-    // Order matters for FKs; cascade does the rest.
+  if (HARD_RESET) {
+    console.log("--reset: TRUNCATE notes / messages / webhook_events / conversations / contacts / locations");
     await db.execute(sql`TRUNCATE notes, messages, webhook_events, conversations, contacts, locations RESTART IDENTITY CASCADE`);
-    // Drop seeded teammate users but keep the owner.
+    await db.execute(sql`DELETE FROM users WHERE clerk_id LIKE 'seed_%'`);
+  } else {
+    // Idempotent re-seed: wipe only rows whose deterministic slugs we own.
+    await db.execute(sql`DELETE FROM messages WHERE conversation_id IN (
+      SELECT c.id FROM conversations c JOIN locations l ON l.id = c.location_id
+      WHERE l.ghl_location_id LIKE 'seed_loc_%'
+    )`);
+    await db.execute(sql`DELETE FROM notes WHERE conversation_id IN (
+      SELECT c.id FROM conversations c JOIN locations l ON l.id = c.location_id
+      WHERE l.ghl_location_id LIKE 'seed_loc_%'
+    )`);
+    await db.execute(sql`DELETE FROM conversations WHERE location_id IN (
+      SELECT id FROM locations WHERE ghl_location_id LIKE 'seed_loc_%'
+    )`);
+    await db.execute(sql`DELETE FROM contacts WHERE location_id IN (
+      SELECT id FROM locations WHERE ghl_location_id LIKE 'seed_loc_%'
+    )`);
+    await db.execute(sql`DELETE FROM locations WHERE ghl_location_id LIKE 'seed_loc_%'`);
     await db.execute(sql`DELETE FROM users WHERE clerk_id LIKE 'seed_%'`);
   }
 
-  // ── Teammates (assignees) ──────────────────────────────────────────────
-  const teammateInputs = [
-    { name: "Sara Patel", email: "sara@example.com" },
-    { name: "Tom Müller", email: "tom@example.com" },
-    { name: "Alex Morgan", email: "alex@example.com" },
-  ];
-  const teammates: { id: string; name: string }[] = [];
-  for (const t of teammateInputs) {
+  // ── Teammates (deterministic clerk_id = "seed_<slug>") ───────────────────
+  const teammatesById: Record<AgentSlug, string> = {} as Record<AgentSlug, string>;
+  for (const a of AGENTS) {
     const [row] = await db
       .insert(schema.users)
       .values({
-        clerkId: `seed_${t.email.split("@")[0]}_${randomDigits(4)}`,
-        email: t.email,
-        name: t.name,
-        initials: deriveInitials(t.name),
-        tone: pick(TONES),
+        clerkId: `seed_${a.slug}`,
+        email: a.email,
+        name: a.name,
+        initials: a.initials,
+        tone: a.tone,
         role: "agent",
       })
-      .returning({ id: schema.users.id, name: schema.users.name });
-    teammates.push({ id: row.id, name: row.name ?? t.name });
+      .returning({ id: schema.users.id });
+    teammatesById[a.slug] = row.id;
   }
-  console.log(`+ ${teammates.length} teammates`);
+  console.log(`+ ${AGENTS.length} teammates (sara, tom, maya, devon, priya, alex)`);
 
-  // ── 3 locations ─────────────────────────────────────────────────────────
-  const locInputs = [
-    { name: "Acme Retail — Main", phone: "+14155550199" },
-    { name: "Acme Retail — West", phone: "+14155550244" },
-    { name: "Acme Retail — Pop-up", phone: "+14155550321" },
-  ];
-  const locations: { id: string; name: string }[] = [];
-  for (const l of locInputs) {
+  // ── 4 Locations (deterministic ghl_location_id = "seed_<slug>") ─────────
+  const locationsById: Record<LocSlug, string> = {} as Record<LocSlug, string>;
+  for (const l of LOCATIONS) {
     const [row] = await db
       .insert(schema.locations)
       .values({
-        ghlLocationId: `seed_${randomDigits(20)}`,
+        ghlLocationId: `seed_${l.slug}`,
         name: l.name,
+        displayName: l.displayName,
         whatsappNumber: l.phone,
         accessTokenEnc: null,
         refreshTokenEnc: null,
         createdBy: owner.id,
         status: "connected",
       })
-      .returning({ id: schema.locations.id, name: schema.locations.name });
-    locations.push({ id: row.id, name: row.name ?? l.name });
+      .returning({ id: schema.locations.id });
+    locationsById[l.slug] = row.id;
   }
-  console.log(`+ ${locations.length} locations`);
+  console.log(`+ ${LOCATIONS.length} locations (Dubai, Al Ain, Abu Dhabi, Main website)`);
 
-  // ── Contacts + conversations + messages ────────────────────────────────
+  // ── Conversations: 20 open + 8 closed distributed by affinity ───────────
+  const affinityWeights = AFFINITY.map<[typeof AFFINITY[number], number]>((a) => [a, a.w]);
+
   let contactCount = 0;
   let convoCount = 0;
   let msgCount = 0;
   let noteCount = 0;
 
-  for (const loc of locations) {
-    // 8 contacts per location
-    for (let i = 0; i < 8; i += 1) {
-      const first = pick(FIRST_NAMES);
-      const last = pick(LAST_NAMES);
-      const name = `${first} ${last}`;
-      const [contact] = await db
-        .insert(schema.contacts)
-        .values({
-          locationId: loc.id,
-          ghlContactId: `seed_${randomDigits(20)}`,
-          name,
-          phone: `+1415555${randomDigits(4)}`,
-          email: `${first.toLowerCase()}.${last.toLowerCase()}@example.com`,
-          tone: pick(TONES),
-          customFields: {
-            customerSince: "Apr 2024",
-            lifetimeValue: `$${Math.floor(50 + Math.random() * 2000)}`,
-            totalOrders: `${1 + Math.floor(Math.random() * 12)}`,
-            lastOrder: `${1 + Math.floor(Math.random() * 30)} days ago`,
-          },
-        })
-        .returning({ id: schema.contacts.id });
-      contactCount += 1;
+  async function spawnConversation(forcedStatus?: "open" | "snoozed" | "closed") {
+    const a = weightedPick(affinityWeights);
+    const agentId = teammatesById[a.agent];
+    const locationId = locationsById[a.loc];
+    const channel = a.channel;
+    const status = forcedStatus ?? pick(STATUS_BIAS);
+    const priority = pick(PRIORITIES);
 
-      // Each contact gets 1 conversation
-      const channel = pick(CHANNELS);
-      const status = pick(STATUSES);
-      const priority = pick(PRIORITIES);
-      const assignee = Math.random() < 0.6 ? pick(teammates) : null;
-      const minutesOld = Math.floor(Math.random() * 60 * 24 * 5); // up to 5 days
-      const lastMsgAt = new Date(Date.now() - minutesOld * 60_000);
-      const lastInbound = new Date(lastMsgAt.getTime() - Math.random() * 30 * 60_000);
-      const unread = status === "open" ? Math.floor(Math.random() * 4) : 0;
+    const first = pick(FIRST_NAMES);
+    const last = pick(LAST_NAMES);
+    const name = `${first} ${last}`;
+    const [contact] = await db
+      .insert(schema.contacts)
+      .values({
+        locationId,
+        ghlContactId: `seed_${randomDigits(20)}`,
+        name,
+        phone: `+1415555${randomDigits(4)}`,
+        email: `${first.toLowerCase()}.${last.toLowerCase()}@example.com`,
+        tone: CHANNEL_TONES[channel] ?? "#DDE2EC",
+        customFields: {
+          customerSince: "Apr 2024",
+          lifetimeValue: `$${Math.floor(50 + rand() * 2000)}`,
+          totalOrders: `${1 + Math.floor(rand() * 12)}`,
+          lastOrder: `${1 + Math.floor(rand() * 30)} days ago`,
+        },
+      })
+      .returning({ id: schema.contacts.id });
+    contactCount += 1;
 
-      const [conv] = await db
-        .insert(schema.conversations)
-        .values({
-          locationId: loc.id,
-          ghlConversationId: `seed_${randomDigits(20)}`,
-          contactId: contact.id,
-          channel,
-          status,
-          priority,
-          assigneeId: assignee?.id ?? null,
-          lastMessageAt: lastMsgAt,
-          lastInboundAt: lastInbound,
-          unreadCount: unread,
-        })
-        .returning({ id: schema.conversations.id });
-      convoCount += 1;
+    const minutesOld = Math.floor(rand() * 60 * 24 * 5);
+    const lastMsgAt = new Date(Date.now() - minutesOld * 60_000);
+    const lastInbound = new Date(lastMsgAt.getTime() - rand() * 30 * 60_000);
+    const unread = status === "open" ? Math.floor(rand() * 4) : 0;
 
-      // 3-8 messages alternating direction, ordered chronologically
-      const msgCountForConv = 3 + Math.floor(Math.random() * 6);
-      let cursorTime = new Date(lastMsgAt.getTime() - msgCountForConv * 5 * 60_000);
-      for (let m = 0; m < msgCountForConv; m += 1) {
-        cursorTime = new Date(cursorTime.getTime() + (3 + Math.random() * 7) * 60_000);
-        const isOut = m > 0 && m % 2 === 1;
-        await db.insert(schema.messages).values({
-          conversationId: conv.id,
-          ghlMessageId: `seed_${randomDigits(20)}`,
-          direction: isOut ? "outbound" : "inbound",
-          authorId: isOut ? assignee?.id ?? null : null,
-          body: isOut ? pick(AGENT_REPLIES) : pick(SAMPLE_MESSAGES),
-          sentAt: cursorTime,
-          status: "sent",
-          deliveredAt: isOut ? cursorTime : null,
-        });
-        msgCount += 1;
-      }
+    const [conv] = await db
+      .insert(schema.conversations)
+      .values({
+        locationId,
+        ghlConversationId: `seed_${randomDigits(20)}`,
+        contactId: contact.id,
+        channel,
+        status,
+        priority,
+        assigneeId: agentId,
+        lastMessageAt: lastMsgAt,
+        lastInboundAt: lastInbound,
+        unreadCount: unread,
+      })
+      .returning({ id: schema.conversations.id });
+    convoCount += 1;
 
-      // Optional note (30% chance)
-      if (Math.random() < 0.3 && assignee) {
-        await db.insert(schema.notes).values({
-          conversationId: conv.id,
-          authorId: assignee.id,
-          body: `Customer mentioned a referral from @${pick(teammates).name.split(" ")[0]} — worth following up.`,
-        });
-        noteCount += 1;
-      }
+    const msgCountForConv = 3 + Math.floor(rand() * 6);
+    let cursorTime = new Date(lastMsgAt.getTime() - msgCountForConv * 5 * 60_000);
+    for (let m = 0; m < msgCountForConv; m += 1) {
+      cursorTime = new Date(cursorTime.getTime() + (3 + rand() * 7) * 60_000);
+      const isOut = m > 0 && m % 2 === 1;
+      await db.insert(schema.messages).values({
+        conversationId: conv.id,
+        ghlMessageId: `seed_${randomDigits(20)}`,
+        direction: isOut ? "outbound" : "inbound",
+        authorId: isOut ? agentId : null,
+        body: isOut ? pick(SAMPLE_OUTBOUND) : pick(SAMPLE_INBOUND),
+        sentAt: cursorTime,
+        status: "sent",
+        deliveredAt: isOut ? cursorTime : null,
+      });
+      msgCount += 1;
+    }
+    if (rand() < 0.3) {
+      await db.insert(schema.notes).values({
+        conversationId: conv.id,
+        authorId: agentId,
+        body: `Customer mentioned a referral from @${pick(AGENTS).name.split(" ")[0]} — worth following up.`,
+      });
+      noteCount += 1;
     }
   }
 
-  // ── Closed conversations from earlier today (for "Resolved Today" card) ──
-  // The owner's own resolves so Activity feed has variety.
-  let resolvedToday = 0;
-  for (const loc of locations) {
-    for (let i = 0; i < 3; i += 1) {
-      const [contact] = await db
-        .insert(schema.contacts)
-        .values({
-          locationId: loc.id,
-          ghlContactId: `seed_${randomDigits(20)}`,
-          name: `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`,
-          phone: `+1415555${randomDigits(4)}`,
-          tone: pick(TONES),
-        })
-        .returning({ id: schema.contacts.id });
-      const resolvedAt = minutesAgo(30, 60 * 8);
-      const [conv] = await db
-        .insert(schema.conversations)
-        .values({
-          locationId: loc.id,
-          ghlConversationId: `seed_${randomDigits(20)}`,
-          contactId: contact.id,
-          channel: pick(CHANNELS),
-          status: "closed",
-          priority: Math.random() < 0.2 ? "high" : "normal",
-          lastMessageAt: resolvedAt,
-          lastInboundAt: new Date(resolvedAt.getTime() - 5 * 60_000),
-          updatedAt: resolvedAt,
-        })
-        .returning({ id: schema.conversations.id });
-      await db.insert(schema.messages).values({
-        conversationId: conv.id,
-        direction: "system",
-        authorId: owner.id,
-        body: `Resolved by ${owner.name ?? "Sam"}`,
-        sentAt: resolvedAt,
-        status: "sent",
-      });
-      resolvedToday += 1;
-    }
+  // 20 open with affinity weighting
+  for (let i = 0; i < 20; i += 1) {
+    await spawnConversation("open");
+  }
+  // 4 snoozed
+  for (let i = 0; i < 4; i += 1) {
+    await spawnConversation("snoozed");
+  }
+  // 8 "resolved today" for the dashboard's Resolved card + Latest Activity
+  for (let i = 0; i < 8; i += 1) {
+    await spawnConversation("closed");
   }
 
   console.log(
     `+ ${contactCount} contacts, ${convoCount} conversations, ${msgCount} messages, ${noteCount} notes`,
   );
-  console.log(`+ ${resolvedToday} 'resolved today' conversations for the dashboard`);
   console.log("Done.");
 }
 
@@ -287,3 +319,7 @@ main().catch((err) => {
   console.error(err);
   process.exit(1);
 });
+
+// Silence the unused-import warnings for symbols kept for future use.
+void eq;
+void like;

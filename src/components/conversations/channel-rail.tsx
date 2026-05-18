@@ -38,13 +38,19 @@ export function ChannelRail({
   onChange,
   locationId,
   pusherChannel,
+  agents,
+  channels,
 }: {
   active: ChannelKey;
   onChange: (next: ChannelKey) => void;
   locationId: string | "all";
   pusherChannel: string | null;
+  /** Same agent slug list the dashboard filter uses — narrows the badges. */
+  agents?: string[];
+  /** Same channel-instance keys — narrows the badges. */
+  channels?: string[];
 }) {
-  const { counts } = useChannelCounts(locationId, pusherChannel);
+  const { counts } = useChannelCounts(locationId, pusherChannel, { agents, channels });
 
   return (
     <aside className="bg-canvas border-r border-border flex flex-col items-center gap-2.5 py-4 overflow-y-auto">

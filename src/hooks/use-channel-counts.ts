@@ -39,14 +39,28 @@ const EMPTY: ChannelCounts = {
  * `private-location-{locationId}`). Pass `null` to disable realtime
  * sync (e.g. when scoped to 'all' without a single location).
  */
-export function useChannelCounts(locationId: string | "all", pusherChannel: string | null) {
+export function useChannelCounts(
+  locationId: string | "all",
+  pusherChannel: string | null,
+  filters?: { agents?: string[]; channels?: string[] },
+) {
   const queryClient = useQueryClient();
-  const queryKey = useMemo(() => ["channel-counts", locationId], [locationId]);
+  const filterKey = useMemo(
+    () => `${filters?.agents?.join(",") ?? ""}|${filters?.channels?.join(",") ?? ""}`,
+    [filters?.agents, filters?.channels],
+  );
+  const queryKey = useMemo(
+    () => ["channel-counts", locationId, filterKey],
+    [locationId, filterKey],
+  );
 
   const query = useQuery({
     queryKey,
     queryFn: async (): Promise<ChannelCounts> => {
-      const res = await fetch(`/api/channel-counts?locationId=${locationId}`);
+      const params = new URLSearchParams({ locationId });
+      if (filters?.agents && filters.agents.length > 0) params.set("agents", filters.agents.join(","));
+      if (filters?.channels && filters.channels.length > 0) params.set("channels", filters.channels.join(","));
+      const res = await fetch(`/api/channel-counts?${params.toString()}`);
       if (!res.ok) throw new Error(`channel-counts ${res.status}`);
       return res.json();
     },
