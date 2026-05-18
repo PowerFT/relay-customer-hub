@@ -18,11 +18,12 @@ type Datum = { m: string; v: number };
 
 const TARGET_MINUTES = 10;
 
-export function ResponseTimeChart() {
+export function ResponseTimeChart({ filterQuery = "" }: { filterQuery?: string }) {
   const { data, isLoading } = useQuery({
-    queryKey: ["stats", "response-time", "12m", "all"],
+    queryKey: ["stats", "response-time", "12m", filterQuery],
     queryFn: async (): Promise<{ data: Datum[] }> => {
-      const res = await fetch("/api/stats/response-time?range=12m&locationId=all");
+      const qs = filterQuery ? `&${filterQuery}` : "";
+      const res = await fetch(`/api/stats/response-time?range=12m${qs}`);
       if (!res.ok) throw new Error(`response-time ${res.status}`);
       return res.json();
     },

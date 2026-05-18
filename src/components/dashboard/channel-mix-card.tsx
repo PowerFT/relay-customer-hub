@@ -6,11 +6,19 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 
 import type { ChannelMixSlice } from "@/lib/dashboard/mock-data";
 
-export function ChannelMixCard() {
+type ChannelMixResponse = {
+  slices: ChannelMixSlice[];
+  total: number;
+  mode: "channel" | "branch";
+  channelLabel?: string;
+};
+
+export function ChannelMixCard({ filterQuery = "" }: { filterQuery?: string }) {
+  const qs = filterQuery ? `?${filterQuery}` : "";
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard", "channel-mix"],
-    queryFn: async (): Promise<{ slices: ChannelMixSlice[]; total: number }> => {
-      const res = await fetch("/api/dashboard/channel-mix");
+    queryKey: ["dashboard", "channel-mix", filterQuery],
+    queryFn: async (): Promise<ChannelMixResponse> => {
+      const res = await fetch(`/api/dashboard/channel-mix${qs}`);
       if (!res.ok) throw new Error(`channel-mix ${res.status}`);
       return res.json();
     },
@@ -18,13 +26,26 @@ export function ChannelMixCard() {
 
   const slices = data?.slices ?? [];
   const total = data?.total ?? slices.reduce((s, x) => s + x.value, 0);
+  const mode = data?.mode ?? "channel";
+  const channelLabel = data?.channelLabel;
 
   return (
     <div className="bg-surface border border-border rounded-xl shadow-sm">
       <div className="flex items-start justify-between px-5 pt-4">
         <div className="min-w-0">
-          <h3 className="text-[15px] font-semibold text-text-primary">Channel Mix</h3>
-          <p className="text-xs text-text-secondary mt-0.5">Active conversations by channel</p>
+          <h3 className="text-[15px] font-semibold text-text-primary flex items-center gap-2">
+            Channel Mix
+            {mode === "branch" && (
+              <span className="text-[10px] font-semibold uppercase tracking-wide bg-primary-soft text-primary px-1.5 py-0.5 rounded">
+                Branches
+              </span>
+            )}
+          </h3>
+          <p className="text-xs text-text-secondary mt-0.5">
+            {mode === "branch" && channelLabel
+              ? `${channelLabel} conversations by branch`
+              : "Active conversations by channel"}
+          </p>
         </div>
         <button
           type="button"

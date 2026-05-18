@@ -38,17 +38,20 @@ const CHANNEL_COLOR: Record<string, string> = {
 
 export function LatestActivityCard({
   pusherChannel,
+  filterQuery = "",
 }: {
   /** Pass `private-location-{id}` for live updates, or null for poll-only. */
   pusherChannel?: string | null;
+  filterQuery?: string;
 }) {
   const queryClient = useQueryClient();
-  const queryKey = useMemo(() => ["activity", 6], []);
+  const queryKey = useMemo(() => ["activity", 6, filterQuery], [filterQuery]);
 
   const { data, isLoading } = useQuery({
     queryKey,
     queryFn: async (): Promise<{ items: ActivityItem[] }> => {
-      const res = await fetch("/api/activity?limit=6");
+      const qs = filterQuery ? `&${filterQuery}` : "";
+      const res = await fetch(`/api/activity?limit=6${qs}`);
       if (!res.ok) throw new Error(`activity ${res.status}`);
       return res.json();
     },

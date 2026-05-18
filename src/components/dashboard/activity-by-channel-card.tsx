@@ -10,22 +10,23 @@ import { cn } from "@/lib/utils";
 
 type Toggle = "Volume" | "Response Time";
 
-export function ActivityByChannelCard() {
+export function ActivityByChannelCard({ filterQuery = "" }: { filterQuery?: string }) {
   const [toggle, setToggle] = useState<Toggle>("Volume");
+  const qs = filterQuery ? `?${filterQuery}` : "";
 
   const bubblesQ = useQuery({
-    queryKey: ["dashboard", "map-bubbles"],
+    queryKey: ["dashboard", "map-bubbles", filterQuery],
     queryFn: async (): Promise<{ bubbles: MapBubble[] }> => {
-      const res = await fetch("/api/dashboard/map-bubbles");
+      const res = await fetch(`/api/dashboard/map-bubbles${qs}`);
       if (!res.ok) throw new Error(`map-bubbles ${res.status}`);
       return res.json();
     },
   });
 
   const regionsQ = useQuery({
-    queryKey: ["dashboard", "channel-regions"],
+    queryKey: ["dashboard", "channel-regions", filterQuery],
     queryFn: async (): Promise<{ regions: ChannelRegion[] }> => {
-      const res = await fetch("/api/dashboard/channel-regions");
+      const res = await fetch(`/api/dashboard/channel-regions${qs}`);
       if (!res.ok) throw new Error(`channel-regions ${res.status}`);
       return res.json();
     },
