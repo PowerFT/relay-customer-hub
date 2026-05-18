@@ -26,10 +26,27 @@ Every commit to a branch produces a Vercel preview deploy. `main` deploys to pro
 
 | Scope | URL pattern |
 |---|---|
-| Production | `https://{project}.vercel.app` |
-| Preview | `https://{project}-git-{branch}.vercel.app` |
+| Production | `https://relay-customer-hub.vercel.app` |
+| Preview | `https://relay-customer-hub-git-{branch}-powerfts-projects.vercel.app` |
 
-The production URL is what gets registered with the HighLevel marketplace app at row 25 (production cutover). Preview URLs are used for OAuth + webhook development from row 7 onward.
+### How to deploy a feature
+
+1. Open a PR against `main`. The Vercel bot posts a preview URL on the PR.
+2. Run `pnpm typecheck && pnpm lint && pnpm test && pnpm build` locally and confirm green.
+3. Squash-merge to `main`. The push triggers a production deploy.
+4. Confirm the new alias on `relay-customer-hub.vercel.app` by running `vercel inspect <prod-url>` and checking the `created` timestamp.
+
+### Production cutover (one-time)
+
+See **[CHECKLIST.md](./CHECKLIST.md)** for the full Row 25 cutover playbook — env var setup, the three external marketplace apps (Clerk, Pusher, HighLevel) you must create, smoke test, and tagging.
+
+### Cron
+
+`/api/cron/unsnooze` is invoked every 5 minutes by **GitHub Actions** (`.github/workflows/unsnooze.yml`) because Vercel Hobby caps native crons at once-daily. Auth: `Authorization: Bearer ${CRON_SECRET}`. Manual dispatch via `gh workflow run unsnooze.yml`.
+
+### Demo seed
+
+`pnpm db:seed` (local, requires `DATABASE_URL`) or `POST /api/admin/seed` (against the live deploy, bearer-gated by `CRON_SECRET`) writes a deterministic set of 6 agents · 4 locations · 32 conversations distributed by agent/channel affinity. Idempotent: re-running wipes prior seeded rows and reinserts. Remove the admin endpoint before going public to outside customers (see CHECKLIST.md §7).
 
 ## CI
 
