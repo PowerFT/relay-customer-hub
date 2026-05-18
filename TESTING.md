@@ -41,11 +41,11 @@ Sign up via Clerk at `relay-customer-hub.vercel.app`. Land on `/dashboard`.
 
 Navigate to `/settings/locations`, click **Connect HighLevel** three times — once per sub-account.
 
-- [ ] OAuth handshake completes for all 3 (status `connected`)
-- [ ] Yellow "no locations connected" banner clears after the 3rd
-- [ ] Each location shows its WhatsApp number
+- [x] OAuth handshake completes for all 3 (status `connected`)
+- [x] Yellow "no locations connected" banner clears after the 3rd
+- [x] Each location shows its WhatsApp number
 
-**Date / observations:**
+**Date / observations:** 2026-05-18 — passed.
 
 ## 3 · Inbound from 3 phones
 
