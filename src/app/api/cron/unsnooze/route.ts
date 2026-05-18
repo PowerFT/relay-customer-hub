@@ -8,24 +8,19 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Unsnooze cron handler. Finds conversations whose snooze window has
- * elapsed, flips them back to 'open', writes a system message, and fires
- * the realtime fan-out so any open UI updates.
+ * Unsnooze cron handler — invoked every 5 minutes by the GitHub Actions
+ * workflow at .github/workflows/unsnooze.yml. Finds conversations whose
+ * snooze window has elapsed, flips them back to 'open', writes a system
+ * message, and fires the realtime fan-out so any open UI updates.
  *
- * Scheduling: driven by an EXTERNAL cron service (e.g. cron-job.org,
- * EasyCron) configured to GET this URL every 5 minutes. Vercel Hobby
- * caps native crons at once-daily, so we keep the route public-but-
- * authed and let an external tickler call it on the cadence we want.
+ * Vercel Hobby caps native crons at once-daily, so we drive this from
+ * GitHub Actions instead. Both GET and POST are accepted — the workflow
+ * uses POST; manual curl/inspection can use either.
  *
- * Configure:
- *   URL:        https://relay-customer-hub.vercel.app/api/cron/unsnooze
- *   Schedule:   every 5 minutes
- *   Header:     Authorization: Bearer ${CRON_SECRET}
- *
- * Protection: `Authorization: Bearer ${CRON_SECRET}`. Route is `dynamic`
- * so the response is never cached.
+ * Protection: `Authorization: Bearer ${CRON_SECRET}`. The repo secret of
+ * the same name supplies the header.
  */
-export async function GET(req: Request) {
+async function handle(req: Request) {
   const expected = process.env.CRON_SECRET;
   const auth = req.headers.get("authorization");
   if (!expected || auth !== `Bearer ${expected}`) {
@@ -80,3 +75,6 @@ export async function GET(req: Request) {
 
   return NextResponse.json({ ok: true, reopened: due.length });
 }
+
+export const GET = handle;
+export const POST = handle;
