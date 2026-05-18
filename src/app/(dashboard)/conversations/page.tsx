@@ -5,6 +5,7 @@ import { useCallback, useSyncExternalStore } from "react";
 import { MessageSquare, PanelRightOpen } from "lucide-react";
 
 import { ChannelRail } from "@/components/conversations/channel-rail";
+import { ContactPanel } from "@/components/conversations/contact-panel";
 import { ConversationList } from "@/components/conversations/conversation-list";
 import { Thread } from "@/components/conversations/thread";
 import type { ChannelKey } from "@/hooks/use-channel-counts";
@@ -103,10 +104,16 @@ export default function ConversationsPage() {
       )}
 
       {panelOpen ? (
-        <ContactPanelPlaceholder
-          conversationId={activeConversationId}
-          onClose={() => setParam("panel", "closed")}
-        />
+        activeConversationId ? (
+          <ContactPanel
+            conversationId={activeConversationId}
+            onClose={() => setParam("panel", "closed")}
+          />
+        ) : (
+          <aside className="bg-surface border-l border-border flex items-center justify-center text-sm text-text-secondary px-6 text-center">
+            Select a conversation to see contact details.
+          </aside>
+        )
       ) : (
         <FloatingReopenButton onClick={() => setParam("panel", null)} />
       )}
@@ -114,8 +121,8 @@ export default function ConversationsPage() {
   );
 }
 
-// ─── Placeholders ────────────────────────────────────────────────────────────
-// Row 17 replaces these. Rows 13/14/15 wired the real components above.
+// Rows 13/14/15/16/17 are now wired above. Only the empty/reopen helpers
+// stay inline since they're page-shell concerns.
 
 function ThreadEmptyState() {
   return (
@@ -128,35 +135,6 @@ function ThreadEmptyState() {
         Pick one from the list to load the thread.
       </p>
     </div>
-  );
-}
-
-function ContactPanelPlaceholder({
-  conversationId,
-  onClose,
-}: {
-  conversationId: string | null;
-  onClose: () => void;
-}) {
-  return (
-    <aside className="bg-surface border-l border-border flex flex-col min-h-0">
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-        <p className="text-sm font-semibold">Contact</p>
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close panel"
-          className="text-text-secondary hover:text-text-primary"
-        >
-          ×
-        </button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-5 text-sm text-text-secondary">
-        {conversationId
-          ? `Row 17 fills this with contact details, notes, and history for ${conversationId}.`
-          : "No conversation selected."}
-      </div>
-    </aside>
   );
 }
 
