@@ -15,11 +15,12 @@ import { ChartCard } from "@/components/dashboard/chart-card";
 
 type Datum = { day: string; inbound: number; outbound: number };
 
-export function MessageVolumeChart() {
+export function MessageVolumeChart({ filterQuery = "" }: { filterQuery?: string }) {
   const { data, isLoading } = useQuery({
-    queryKey: ["stats", "volume", "7d", "all"],
+    queryKey: ["stats", "volume", "7d", filterQuery],
     queryFn: async (): Promise<{ data: Datum[] }> => {
-      const res = await fetch("/api/stats/volume?range=7d&locationId=all");
+      const qs = filterQuery ? `&${filterQuery}` : "";
+      const res = await fetch(`/api/stats/volume?range=7d${qs}`);
       if (!res.ok) throw new Error(`volume ${res.status}`);
       return res.json();
     },

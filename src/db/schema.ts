@@ -31,6 +31,9 @@ export const locations = pgTable("locations", {
   id: uuid().primaryKey().defaultRandom(),
   ghlLocationId: text("ghl_location_id").notNull().unique(),
   name: text(),
+  // Human-readable label shown in dashboard filters ("Dubai branch",
+  // "Main website"). Falls back to `name` if unset.
+  displayName: text("display_name"),
   whatsappNumber: text("whatsapp_number"),
   accessTokenEnc: text("access_token_enc"),
   refreshTokenEnc: text("refresh_token_enc"),

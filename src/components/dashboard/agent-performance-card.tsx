@@ -4,16 +4,28 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 
 import type { AgentPerf } from "@/lib/dashboard/mock-data";
+import { cn } from "@/lib/utils";
 
-export function AgentPerformanceCard() {
+export function AgentPerformanceCard({
+  filterQuery = "",
+  highlightAgentIds,
+}: {
+  filterQuery?: string;
+  /** "all" or a list — used purely to read whether highlighting applies. */
+  highlightAgentIds?: string[] | "all";
+}) {
+  const qs = filterQuery ? `?${filterQuery}` : "";
   const { data, isLoading } = useQuery({
-    queryKey: ["dashboard", "agent-performance"],
+    queryKey: ["dashboard", "agent-performance", filterQuery],
     queryFn: async (): Promise<{ agents: AgentPerf[] }> => {
-      const res = await fetch("/api/dashboard/agent-performance");
+      const res = await fetch(`/api/dashboard/agent-performance${qs}`);
       if (!res.ok) throw new Error(`agent-performance ${res.status}`);
       return res.json();
     },
   });
+  // The API already marks each row with .highlighted, but the prop is
+  // available for any local UX (e.g. dimming non-selected agents).
+  void highlightAgentIds;
 
   return (
     <div className="bg-surface border border-border rounded-xl shadow-sm">
@@ -62,7 +74,12 @@ function AgentRow({ agent }: { agent: AgentPerf }) {
   const qualityWidth = Math.min(agent.quality * 0.7, 100);
 
   return (
-    <div className="grid grid-cols-[28px_1fr_56px] gap-3 items-center">
+    <div
+      className={cn(
+        "grid grid-cols-[28px_1fr_56px] gap-3 items-center rounded-lg",
+        agent.highlighted && "bg-primary-soft/40 -mx-2 px-2 py-1.5",
+      )}
+    >
       <div
         className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold text-text-primary"
         style={{ background: agent.tone }}

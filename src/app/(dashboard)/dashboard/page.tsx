@@ -1,12 +1,4 @@
-import { CheckCircle2, MailOpen, MessageSquare, MessagesSquare } from "lucide-react";
-
-import { ActivityByChannelCard } from "@/components/dashboard/activity-by-channel-card";
-import { AgentPerformanceCard } from "@/components/dashboard/agent-performance-card";
-import { ChannelMixCard } from "@/components/dashboard/channel-mix-card";
-import { LatestActivityCard } from "@/components/dashboard/latest-activity-card";
-import { MessageVolumeChart } from "@/components/dashboard/message-volume-chart";
-import { ResponseTimeChart } from "@/components/dashboard/response-time-chart";
-import { StatCard } from "@/components/dashboard/stat-card";
+import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { getCurrentUser } from "@/lib/auth";
 import { fetchStats } from "@/lib/dashboard/stats";
 
@@ -23,79 +15,6 @@ export default async function DashboardPage() {
   const stats = await fetchStats({ range: "7d", locationId: "all" });
 
   return (
-    <main className="p-6 flex flex-col gap-5">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">
-          {greeting()}, {firstName}
-        </h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Here&apos;s how your team is doing this week.
-        </p>
-      </header>
-
-      {/* Row 1 — Stat cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-        <StatCard
-          title="Total Messages"
-          value={stats.totalMessages.value.toLocaleString()}
-          icon={MessageSquare}
-          gradient="gradient-blue"
-          leftLabel="Inbound"
-          leftValue={stats.totalMessages.inbound}
-          rightLabel="Outbound"
-          rightValue={stats.totalMessages.outbound}
-          trendPct={stats.totalMessages.trendPct}
-        />
-        <StatCard
-          title="Unread"
-          value={stats.unread.value}
-          icon={MailOpen}
-          gradient="gradient-pink"
-          leftLabel="Assigned"
-          leftValue={stats.unread.assigned}
-          rightLabel="Unassigned"
-          rightValue={stats.unread.unassigned}
-        />
-        <StatCard
-          title="Active Conversations"
-          value={stats.active.value}
-          icon={MessagesSquare}
-          gradient="gradient-orange"
-          leftLabel="Open"
-          leftValue={stats.active.open}
-          rightLabel="Snoozed"
-          rightValue={stats.active.snoozed}
-        />
-        <StatCard
-          title="Resolved Today"
-          value={stats.resolvedToday.value}
-          icon={CheckCircle2}
-          gradient="gradient-purple"
-          leftLabel="Resolved"
-          leftValue={stats.resolvedToday.resolved}
-          rightLabel="Escalated"
-          rightValue={stats.resolvedToday.escalated}
-          trendPct={stats.resolvedToday.trendPct}
-        />
-      </section>
-
-      {/* Row 2 — Message Volume + Avg Response Time */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <MessageVolumeChart />
-        <ResponseTimeChart />
-      </section>
-
-      {/* Row 3 — Activity by Channel (wide) */}
-      <section>
-        <ActivityByChannelCard />
-      </section>
-
-      {/* Row 4 — Agent Performance · Channel Mix · Latest Activity */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <AgentPerformanceCard />
-        <ChannelMixCard />
-        <LatestActivityCard pusherChannel={null} />
-      </section>
-    </main>
+    <DashboardClient greeting={greeting()} firstName={firstName} stats={stats} />
   );
 }
