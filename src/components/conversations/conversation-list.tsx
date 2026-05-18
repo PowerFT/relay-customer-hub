@@ -97,7 +97,11 @@ export function ConversationList({
           ))}
         </div>
 
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] text-text-tertiary">
+            {counts[filters.status] ?? 0}{" "}
+            {(counts[filters.status] ?? 0) === 1 ? "conversation" : "conversations"}
+          </span>
           <DropdownMenu>
             <DropdownMenuTrigger className="inline-flex items-center gap-1 text-[11px] text-text-secondary hover:text-text-primary px-1.5">
               Sort: {SORT_LABEL[filters.sort ?? "newest"]}
@@ -172,7 +176,7 @@ function ConversationListItemRow({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative w-full grid grid-cols-[48px_1fr] gap-3 px-4 py-3 border-b border-border text-left transition-colors",
+        "relative w-full grid grid-cols-[44px_1fr] gap-3 px-4 py-3 border-b border-border text-left transition-colors",
         "hover:bg-[#FAFBFC]",
         active && "bg-primary-soft/60",
       )}
@@ -183,7 +187,7 @@ function ConversationListItemRow({
       <div className="relative">
         {/* Channel-color ring around the avatar (per design.md §5.2) */}
         <div
-          className="w-11 h-11 rounded-full p-[2px] flex-shrink-0"
+          className="w-10 h-10 rounded-full p-[2px] flex-shrink-0"
           style={{ background: channelColor(c.channel) }}
         >
           <div
@@ -272,7 +276,7 @@ function ListSkeleton() {
     <div className="px-4 py-3 space-y-3">
       {Array.from({ length: 8 }).map((_, i) => (
         <div key={i} className="flex gap-3 animate-pulse">
-          <div className="w-11 h-11 rounded-full bg-canvas" />
+          <div className="w-10 h-10 rounded-full bg-canvas" />
           <div className="flex-1 space-y-2">
             <div className="h-3 bg-canvas rounded w-2/3" />
             <div className="h-3 bg-canvas rounded w-4/5" />
