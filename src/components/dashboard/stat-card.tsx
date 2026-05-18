@@ -56,7 +56,7 @@ export function StatCard({
         </div>
       </div>
 
-      <div className="text-4xl font-bold tracking-tight mt-2 leading-tight relative z-10">
+      <div className="text-5xl font-bold tracking-tight mt-2 leading-tight relative z-10">
         {value}
       </div>
 
