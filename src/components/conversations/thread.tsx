@@ -4,6 +4,7 @@ import { formatRelative, isSameDay, format } from "date-fns";
 import { MessageSquare, MoreHorizontal, Bell, Tag, UserPlus, Check } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef } from "react";
 
+import { Composer } from "@/components/conversations/composer";
 import { MessageBubble } from "@/components/conversations/message-bubble";
 import { useConversation } from "@/hooks/use-conversation";
 import { useMessages, type ThreadMessage } from "@/hooks/use-messages";
@@ -107,6 +108,11 @@ export function Thread({ conversationId }: { conversationId: string }) {
           renderMessages(items)
         )}
       </div>
+
+      <Composer
+        conversationId={conversationId}
+        lastInboundAt={conversation.lastInboundAt}
+      />
     </div>
   );
 }
