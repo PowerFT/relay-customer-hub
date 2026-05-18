@@ -31,11 +31,11 @@ curl -X POST -H "Authorization: Bearer ${CRON_SECRET}" \
 
 Sign up via Clerk at `relay-customer-hub.vercel.app`. Land on `/dashboard`.
 
-- [ ] Sign-up email arrives
-- [ ] Lands on `/dashboard` after verify
-- [ ] Stat cards render (numbers may be 0 until conversations arrive)
+- [x] Sign-up email arrives
+- [x] Lands on `/dashboard` after verify
+- [x] Stat cards render (numbers may be 0 until conversations arrive)
 
-**Date / observations:**
+**Date / observations:** 2026-05-18 — passed.
 
 ## 2 · Connect 3 HL locations via OAuth
 
