@@ -1,6 +1,8 @@
 import { CheckCircle2, MailOpen, MessageSquare, MessagesSquare } from "lucide-react";
 
-import { ComingSoonCard } from "@/components/dashboard/coming-soon-card";
+import { ActivityByChannelCard } from "@/components/dashboard/activity-by-channel-card";
+import { AgentPerformanceCard } from "@/components/dashboard/agent-performance-card";
+import { ChannelMixCard } from "@/components/dashboard/channel-mix-card";
 import { LatestActivityCard } from "@/components/dashboard/latest-activity-card";
 import { MessageVolumeChart } from "@/components/dashboard/message-volume-chart";
 import { ResponseTimeChart } from "@/components/dashboard/response-time-chart";
@@ -27,10 +29,11 @@ export default async function DashboardPage() {
           {greeting()}, {firstName}
         </h1>
         <p className="text-sm text-text-secondary mt-1">
-          Inbox snapshot — last 7 days. Activity feed lands in Row 22.
+          Here&apos;s how your team is doing this week.
         </p>
       </header>
 
+      {/* Row 1 — Stat cards */}
       <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         <StatCard
           title="Total Messages"
@@ -76,27 +79,21 @@ export default async function DashboardPage() {
         />
       </section>
 
+      {/* Row 2 — Message Volume + Avg Response Time */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <MessageVolumeChart />
         <ResponseTimeChart />
       </section>
 
+      {/* Row 3 — Activity by Channel (wide) */}
       <section>
-        <ComingSoonCard
-          title="Activity by Channel"
-          body="World map + per-channel volume breakdown."
-        />
+        <ActivityByChannelCard />
       </section>
 
+      {/* Row 4 — Agent Performance · Channel Mix · Latest Activity */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <ComingSoonCard
-          title="Agent Performance"
-          body="Handled-conversations and avg response time per agent."
-        />
-        <ComingSoonCard
-          title="Channel Mix"
-          body="Donut breakdown by channel."
-        />
+        <AgentPerformanceCard />
+        <ChannelMixCard />
         <LatestActivityCard pusherChannel={null} />
       </section>
     </main>
