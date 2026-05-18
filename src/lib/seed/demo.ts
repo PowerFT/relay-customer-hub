@@ -138,21 +138,15 @@ export async function runDemoSeed(opts: SeedOptions = {}): Promise<SeedResult> {
     await db.execute(sql`TRUNCATE notes, messages, webhook_events, conversations, contacts, locations RESTART IDENTITY CASCADE`);
     await db.execute(sql`DELETE FROM users WHERE clerk_id LIKE 'seed_%'`);
   } else {
-    await db.execute(sql`DELETE FROM messages WHERE conversation_id IN (
-      SELECT c.id FROM conversations c JOIN locations l ON l.id = c.location_id
-      WHERE l.ghl_location_id LIKE 'seed_loc_%'
-    )`);
-    await db.execute(sql`DELETE FROM notes WHERE conversation_id IN (
-      SELECT c.id FROM conversations c JOIN locations l ON l.id = c.location_id
-      WHERE l.ghl_location_id LIKE 'seed_loc_%'
-    )`);
-    await db.execute(sql`DELETE FROM conversations WHERE location_id IN (
-      SELECT id FROM locations WHERE ghl_location_id LIKE 'seed_loc_%'
-    )`);
-    await db.execute(sql`DELETE FROM contacts WHERE location_id IN (
-      SELECT id FROM locations WHERE ghl_location_id LIKE 'seed_loc_%'
-    )`);
-    await db.execute(sql`DELETE FROM locations WHERE ghl_location_id LIKE 'seed_loc_%'`);
+    // Idempotent re-seed: wipe all rows whose deterministic slug prefix
+    // we own. Broaden to 'seed_%' so previous seed runs (with random
+    // suffixes like 'seed_<digits>') also get cleaned up. Schema cascades
+    // from locations → conversations → messages/notes and locations →
+    // contacts → conversations, so deleting locations clears everything
+    // below. assignee_id / author_id on conversations/messages/notes
+    // reference users.id without cascade, so users must be deleted AFTER
+    // locations, once nothing references them.
+    await db.execute(sql`DELETE FROM locations WHERE ghl_location_id LIKE 'seed_%'`);
     await db.execute(sql`DELETE FROM users WHERE clerk_id LIKE 'seed_%'`);
   }
 
