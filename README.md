@@ -44,6 +44,10 @@ See **[CHECKLIST.md](./CHECKLIST.md)** for the full Row 25 cutover playbook — 
 
 `/api/cron/unsnooze` is invoked every 5 minutes by **GitHub Actions** (`.github/workflows/unsnooze.yml`) because Vercel Hobby caps native crons at once-daily. Auth: `Authorization: Bearer ${CRON_SECRET}`. Manual dispatch via `gh workflow run unsnooze.yml`.
 
+### Acceptance test
+
+Row 26 of the build plan is a 10-check end-to-end smoke test against the production deploy with 3 real HighLevel WhatsApp numbers. The plan and result log live in **[TESTING.md](./TESTING.md)** — tick each step as it passes, log bugs inline.
+
 ### Demo seed
 
 `pnpm db:seed` (local, requires `DATABASE_URL`) or `POST /api/admin/seed` (against the live deploy, bearer-gated by `CRON_SECRET`) writes a deterministic set of 6 agents · 4 locations · 32 conversations distributed by agent/channel affinity. Idempotent: re-running wipes prior seeded rows and reinserts. Remove the admin endpoint before going public to outside customers (see CHECKLIST.md §7).
