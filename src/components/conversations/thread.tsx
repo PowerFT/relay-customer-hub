@@ -1,11 +1,12 @@
 "use client";
 
 import { formatRelative, isSameDay, isToday, isYesterday, format } from "date-fns";
-import { MessageSquare, MoreHorizontal, Bell, Tag, Check, UserPlus } from "lucide-react";
+import { CheckCircle2, Clock, MessageSquare, MoreHorizontal, Tag, Users } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 
 import { AssignDropdown } from "@/components/conversations/assign-dropdown";
+import { CHANNEL_ICONS, type ChannelIconKey } from "@/components/conversations/channel-icons";
 import { Composer } from "@/components/conversations/composer";
 import { MessageBubble } from "@/components/conversations/message-bubble";
 import { useResolveActions } from "@/components/conversations/resolve-button";
@@ -13,6 +14,17 @@ import { SnoozeMenu } from "@/components/conversations/snooze-menu";
 import { useConversation } from "@/hooks/use-conversation";
 import { useMessages, type ThreadMessage } from "@/hooks/use-messages";
 import { cn } from "@/lib/utils";
+
+const CHANNEL_COLORS: Record<string, string> = {
+  whatsapp: "var(--color-c-whatsapp)",
+  messenger: "var(--color-c-messenger)",
+  instagram: "var(--color-c-instagram)",
+  tiktok: "var(--color-c-tiktok)",
+  linkedin: "var(--color-c-linkedin)",
+  webchat: "var(--color-c-webchat)",
+  email: "var(--color-c-email)",
+  sms: "var(--color-c-sms)",
+};
 
 export function Thread({ conversationId }: { conversationId: string }) {
   const { data: conversation, isLoading: convLoading } = useConversation(conversationId);
@@ -83,9 +95,7 @@ export function Thread({ conversationId }: { conversationId: string }) {
         <div className="min-w-0 flex-1">
           <div className="text-[15px] font-semibold flex items-center gap-2">
             <span className="truncate">{conversation.contactName ?? "Unknown"}</span>
-            <span className="text-[10px] uppercase tracking-wide px-1.5 py-px rounded-md bg-c-whatsapp/15 text-c-whatsapp font-bold">
-              {conversation.channel}
-            </span>
+            <ChannelBadge channel={conversation.channel} />
           </div>
           <div className="text-xs text-text-secondary flex items-center gap-1.5 mt-0.5">
             <span className="w-2 h-2 rounded-full bg-success" aria-hidden />
@@ -104,7 +114,7 @@ export function Thread({ conversationId }: { conversationId: string }) {
             currentAssigneeId={conversation.assigneeId}
             open={assignOpen}
             onOpenChange={setAssignOpen}
-            trigger={<UserPlus size={18} />}
+            trigger={<Users size={18} />}
           />
           <SnoozeMenu
             conversationId={conversationId}
@@ -117,7 +127,7 @@ export function Thread({ conversationId }: { conversationId: string }) {
                 aria-label="Snooze"
                 className="w-9 h-9 rounded-[10px] text-text-secondary hover:bg-canvas hover:text-text-primary flex items-center justify-center"
               >
-                <Bell size={18} />
+                <Clock size={18} />
               </button>
             }
           />
@@ -127,9 +137,9 @@ export function Thread({ conversationId }: { conversationId: string }) {
             onClick={() => resolve()}
             title="Resolve (E)"
             aria-label="Resolve"
-            className="w-9 h-9 rounded-[10px] text-text-secondary hover:bg-canvas hover:text-text-primary flex items-center justify-center"
+            className="w-9 h-9 rounded-[10px] text-primary hover:bg-canvas flex items-center justify-center"
           >
-            <Check size={18} />
+            <CheckCircle2 size={18} />
           </button>
           <ActionButton title="More" icon={MoreHorizontal} />
         </div>
@@ -198,6 +208,20 @@ function SystemEvent({ children }: { children: React.ReactNode }) {
     <div className="self-center text-[11px] text-text-tertiary my-2.5 max-w-[70%] text-center">
       {children}
     </div>
+  );
+}
+
+function ChannelBadge({ channel }: { channel: string }) {
+  const Icon = CHANNEL_ICONS[channel as ChannelIconKey] ?? CHANNEL_ICONS.all;
+  const color = CHANNEL_COLORS[channel] ?? "#9CA3AF";
+  return (
+    <span
+      className="w-[22px] h-[22px] rounded-md text-white inline-flex items-center justify-center flex-shrink-0"
+      style={{ background: color }}
+      aria-label={channel}
+    >
+      <Icon size={11} />
+    </span>
   );
 }
 

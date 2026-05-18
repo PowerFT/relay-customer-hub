@@ -1,47 +1,36 @@
 "use client";
 
-import {
-  AtSign,
-  Aperture,
-  Briefcase,
-  Globe,
-  MessageCircle,
-  MessageSquare,
-  MessagesSquare,
-  Music,
-  Phone,
-  type LucideIcon,
-} from "lucide-react";
+import { MessagesSquare } from "lucide-react";
+import type { ComponentType } from "react";
 
+import { CHANNEL_ICONS } from "@/components/conversations/channel-icons";
 import { useChannelCounts, type ChannelKey } from "@/hooks/use-channel-counts";
 import { cn } from "@/lib/utils";
 
 type RailItem = {
   id: ChannelKey;
   name: string;
-  icon: LucideIcon;
+  icon: ComponentType<{ size?: number; className?: string }>;
   enabled: boolean;
   /** Either a single brand color or a multi-stop gradient. */
   background: string;
 };
 
-// Lucide 1.x removed brand icons (trademark concerns) — we pair generic
-// glyphs with each channel's brand color, which is what conveys identity.
 const ITEMS: RailItem[] = [
-  { id: "whatsapp", name: "WhatsApp", icon: MessageCircle, enabled: true, background: "var(--color-c-whatsapp)" },
-  { id: "messenger", name: "Messenger", icon: MessageSquare, enabled: false, background: "var(--color-c-messenger)" },
+  { id: "whatsapp", name: "WhatsApp", icon: CHANNEL_ICONS.whatsapp, enabled: true, background: "var(--color-c-whatsapp)" },
+  { id: "messenger", name: "Messenger", icon: CHANNEL_ICONS.messenger, enabled: false, background: "var(--color-c-messenger)" },
   {
     id: "instagram",
     name: "Instagram",
-    icon: Aperture,
+    icon: CHANNEL_ICONS.instagram,
     enabled: false,
     background: "linear-gradient(135deg, #F58529, #DD2A7B, #8134AF)",
   },
-  { id: "tiktok", name: "TikTok", icon: Music, enabled: false, background: "var(--color-c-tiktok)" },
-  { id: "linkedin", name: "LinkedIn", icon: Briefcase, enabled: false, background: "var(--color-c-linkedin)" },
-  { id: "webchat", name: "Webchat", icon: Globe, enabled: false, background: "var(--color-c-webchat)" },
-  { id: "email", name: "Email", icon: AtSign, enabled: false, background: "var(--color-c-email)" },
-  { id: "sms", name: "SMS", icon: Phone, enabled: false, background: "var(--color-c-sms)" },
+  { id: "tiktok", name: "TikTok", icon: CHANNEL_ICONS.tiktok, enabled: false, background: "var(--color-c-tiktok)" },
+  { id: "linkedin", name: "LinkedIn", icon: CHANNEL_ICONS.linkedin, enabled: false, background: "var(--color-c-linkedin)" },
+  { id: "webchat", name: "Webchat", icon: CHANNEL_ICONS.webchat, enabled: false, background: "var(--color-c-webchat)" },
+  { id: "email", name: "Email", icon: CHANNEL_ICONS.email, enabled: false, background: "var(--color-c-email)" },
+  { id: "sms", name: "SMS", icon: CHANNEL_ICONS.sms, enabled: false, background: "var(--color-c-sms)" },
 ];
 
 export function ChannelRail({
@@ -99,7 +88,7 @@ function RailTile({
 }: {
   name: string;
   tooltip: string;
-  icon: LucideIcon;
+  icon: ComponentType<{ size?: number; className?: string }>;
   background: string;
   enabled: boolean;
   unread: number;

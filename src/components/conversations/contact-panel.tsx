@@ -22,6 +22,7 @@ export function ContactPanel({
 }) {
   const [tab, setTab] = useState<Tab>("contact");
   const { data: conversation } = useConversation(conversationId);
+  const { notes } = useNotes(conversationId);
 
   return (
     <aside className="bg-surface border-l border-border flex flex-col min-h-0 h-full">
@@ -40,6 +41,9 @@ export function ContactPanel({
               )}
             >
               {t}
+              {t === "notes" && notes.length > 0 && (
+                <span className="ml-1 text-text-tertiary">· {notes.length}</span>
+              )}
             </button>
           ))}
         </div>

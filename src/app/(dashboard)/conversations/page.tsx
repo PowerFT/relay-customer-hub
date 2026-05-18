@@ -148,7 +148,7 @@ function FloatingReopenButton({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="Open contact panel"
-      className="fixed right-6 bottom-6 w-12 h-12 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/80"
+      className="fixed right-3 top-[76px] w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:bg-primary/80"
     >
       <PanelRightOpen size={20} />
     </button>
