@@ -42,6 +42,10 @@ export type ConversationFilters = {
   status: "open" | "snoozed" | "closed";
   search?: string;
   sort?: SortMode;
+  /** ?agents=sara,tom — slugs from src/lib/dashboard/mock-data AGENTS list. */
+  agents?: string[];
+  /** ?channels=whatsapp:loc_dubai,... — channel-instance keys. */
+  channels?: string[];
 };
 
 /**
@@ -76,6 +80,8 @@ export function useConversations(
       params.set("status", filters.status);
       if (filters.search) params.set("search", filters.search);
       if (filters.sort) params.set("sort", filters.sort);
+      if (filters.agents && filters.agents.length > 0) params.set("agents", filters.agents.join(","));
+      if (filters.channels && filters.channels.length > 0) params.set("channels", filters.channels.join(","));
       if (pageParam) params.set("cursor", pageParam);
       const res = await fetch(`/api/conversations?${params.toString()}`);
       if (!res.ok) throw new Error(`conversations ${res.status}`);

@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { db, schema } from "@/db";
 import { requireCurrentUser } from "@/lib/auth";
+import { parseFiltersFromRequest, whereForFilters } from "@/lib/conversations/filters";
 
 export const runtime = "nodejs";
 
@@ -70,6 +71,13 @@ export async function GET(req: Request) {
   if (channel && channel !== "all") {
     whereClauses.push(eq(schema.conversations.channel, channel));
   }
+  // Agent + channel-instance multi-select filters from the dashboard chip
+  // row (?agents=sara,tom&channels=whatsapp:loc_dubai,...).
+  const dashboardFilters = parseFiltersFromRequest(url);
+  whereClauses.push(...(await whereForFilters(dashboardFilters)));
+  // Snapshot the where list as it stands so the tab-counts query can run
+  // without the status clause and pick up totals for all three tabs.
+  const baseWhereClauses = [...whereClauses];
   if (status === "open" || status === "snoozed" || status === "closed") {
     whereClauses.push(eq(schema.conversations.status, status));
   }
@@ -154,18 +162,15 @@ export async function GET(req: Request) {
         })
       : null;
 
-  // Tab counts in one cheap query
+  // Tab counts in one cheap query. Reuses the where list MINUS the
+  // status + cursor clauses so we get totals for all three tabs.
   const countRows = await db
     .select({
       status: schema.conversations.status,
       total: sql<number>`COUNT(*)::int`,
     })
     .from(schema.conversations)
-    .where(
-      and(
-        ...whereClauses.filter((_, i) => i !== whereClauses.length - 1 - (cursor ? 0 : -1)),
-      ),
-    )
+    .where(and(...baseWhereClauses))
     .groupBy(schema.conversations.status);
 
   const counts: Record<string, number> = { open: 0, snoozed: 0, closed: 0 };
