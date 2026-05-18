@@ -8,6 +8,7 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -220,11 +221,13 @@ function ChannelFilter({
             !isAll && groupKeys.some((k) => selected.has(k)) && !allInGroup;
           const Icon = CHANNEL_ICONS[group.channel as ChannelIconKey] ?? CHANNEL_ICONS.all;
           return (
-            <div key={group.channel}>
-              <DropdownMenuLabel className="flex items-center gap-2 mt-1 cursor-pointer hover:bg-accent rounded-md"
+            <DropdownMenuGroup key={group.channel}>
+              <DropdownMenuLabel
+                className="flex items-center gap-2 mt-1 cursor-pointer hover:bg-accent rounded-md"
                 onClick={() => toggleGroup(group)}
               >
-                <span className="w-4 h-4 rounded-sm inline-flex items-center justify-center text-white flex-shrink-0"
+                <span
+                  className="w-4 h-4 rounded-sm inline-flex items-center justify-center text-white flex-shrink-0"
                   style={{
                     background:
                       group.instances[0]?.color ?? "var(--color-primary)",
@@ -253,7 +256,7 @@ function ChannelFilter({
                   <span className="text-text-secondary">{inst.displayName}</span>
                 </DropdownMenuCheckboxItem>
               ))}
-            </div>
+            </DropdownMenuGroup>
           );
         })}
       </DropdownMenuContent>
