@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { formatDistanceToNowStrict } from "date-fns";
+import { formatDistanceToNowStrict, isValid } from "date-fns";
 import Link from "next/link";
 import { useCallback, useMemo } from "react";
 
@@ -17,6 +17,13 @@ type ActivityItem = {
   conversationId: string;
   createdAt: string;
 };
+
+function formatRelative(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (!isValid(d)) return "—";
+  return formatDistanceToNowStrict(d, { addSuffix: false });
+}
 
 const CHANNEL_COLOR: Record<string, string> = {
   whatsapp: "var(--color-c-whatsapp)",
@@ -87,7 +94,7 @@ export function LatestActivityCard({
                 )}
               </div>
               <span className="text-[11px] text-text-secondary bg-canvas px-2 py-0.5 rounded-full whitespace-nowrap font-medium flex-shrink-0">
-                {formatDistanceToNowStrict(new Date(item.createdAt), { addSuffix: false })}
+                {formatRelative(item.createdAt)}
               </span>
             </Link>
           ))

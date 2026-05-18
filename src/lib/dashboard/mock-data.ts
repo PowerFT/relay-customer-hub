@@ -95,57 +95,76 @@ export const CHANNEL_MIX: ChannelMixSlice[] = [
 ];
 
 export type ActivityItem = {
-  channel: string;
+  id: string;
+  type: "inbound" | "resolved" | "assigned" | "system";
   title: string;
-  sub: string;
-  time: string;
-  /** Used by row click → /conversations?id={id}. */
+  subtitle: string | null;
+  channel: string;
   conversationId: string;
+  /** ISO timestamp; consumer formats with formatDistanceToNowStrict. */
+  createdAt: string;
 };
 
-// TODO(real-data): keep Row 22's UNION query but rename keys
-// (subtitle → sub, createdAt → time formatted relative).
-export const LATEST_ACTIVITY: ActivityItem[] = [
-  {
-    channel: "whatsapp",
-    title: "New WhatsApp from Maria Lopez",
-    sub: "Order #4521 — needs refund info",
-    time: "Just now",
-    conversationId: "demo-maria-lopez",
-  },
-  {
-    channel: "instagram",
-    title: "New comment on @yourbrand",
-    sub: '"Where can I order this in EU?"',
-    time: "6m",
-    conversationId: "demo-yourbrand-comment",
-  },
-  {
-    channel: "webchat",
-    title: "Live chat from Chris Bauer",
-    sub: "Discount code WELCOME15 invalid",
-    time: "12m",
-    conversationId: "demo-chris-bauer",
-  },
-  {
-    channel: "email",
-    title: "Email from Hannah Reilly",
-    sub: "Re: Invoice #INV-2024-0931",
-    time: "1h",
-    conversationId: "demo-hannah-reilly",
-  },
-  {
-    channel: "messenger",
-    title: "Yuki Tanaka resolved",
-    sub: "Issue marked as resolved by Maya",
-    time: "34m ago",
-    conversationId: "demo-yuki-tanaka",
-  },
-  {
-    channel: "linkedin",
-    title: "Marcus Hale message",
-    sub: "Interested in Enterprise plan",
-    time: "Yesterday",
-    conversationId: "demo-marcus-hale",
-  },
-];
+// TODO(real-data): replace with Row 22's UNION query over messages + system
+// rows. Shape here mirrors the component contract in latest-activity-card.tsx.
+// Computed at request time so relative-time labels stay fresh.
+export function getLatestActivity(): ActivityItem[] {
+  const now = Date.now();
+  const ago = (ms: number) => new Date(now - ms).toISOString();
+  return [
+    {
+      id: "demo-1",
+      type: "inbound",
+      channel: "whatsapp",
+      title: "New WhatsApp from Maria Lopez",
+      subtitle: "Order #4521 — needs refund info",
+      createdAt: ago(30 * 1000), // 30s → "30s"
+      conversationId: "demo-maria-lopez",
+    },
+    {
+      id: "demo-2",
+      type: "inbound",
+      channel: "instagram",
+      title: "New comment on @yourbrand",
+      subtitle: '"Where can I order this in EU?"',
+      createdAt: ago(6 * 60 * 1000), // 6m
+      conversationId: "demo-yourbrand-comment",
+    },
+    {
+      id: "demo-3",
+      type: "inbound",
+      channel: "webchat",
+      title: "Live chat from Chris Bauer",
+      subtitle: "Discount code WELCOME15 invalid",
+      createdAt: ago(12 * 60 * 1000), // 12m
+      conversationId: "demo-chris-bauer",
+    },
+    {
+      id: "demo-4",
+      type: "inbound",
+      channel: "email",
+      title: "Email from Hannah Reilly",
+      subtitle: "Re: Invoice #INV-2024-0931",
+      createdAt: ago(60 * 60 * 1000), // 1h
+      conversationId: "demo-hannah-reilly",
+    },
+    {
+      id: "demo-5",
+      type: "resolved",
+      channel: "messenger",
+      title: "Yuki Tanaka resolved",
+      subtitle: "Issue marked as resolved by Maya",
+      createdAt: ago(34 * 60 * 1000), // 34m
+      conversationId: "demo-yuki-tanaka",
+    },
+    {
+      id: "demo-6",
+      type: "inbound",
+      channel: "linkedin",
+      title: "Marcus Hale message",
+      subtitle: "Interested in Enterprise plan",
+      createdAt: ago(26 * 60 * 60 * 1000), // ~1 day
+      conversationId: "demo-marcus-hale",
+    },
+  ];
+}
