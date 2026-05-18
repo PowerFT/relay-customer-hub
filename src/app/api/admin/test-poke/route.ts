@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, like, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { db, schema } from "@/db";
@@ -35,19 +35,53 @@ export async function POST(req: Request) {
   } catch {
     return NextResponse.json({ error: "invalid json body" }, { status: 400 });
   }
-  if (!body.conversationId || !body.action) {
-    return NextResponse.json(
-      { error: "conversationId and action required" },
-      { status: 400 },
-    );
+  if (!body.action) {
+    return NextResponse.json({ error: "action required" }, { status: 400 });
+  }
+
+  // Auto-pick a seeded conversation if no ID is provided, so the route is
+  // self-contained for the autonomous acceptance test. Restricted to
+  // seeded rows (ghl_conversation_id LIKE 'seed_%') so this never touches
+  // a real customer conversation.
+  let conversationId = body.conversationId;
+  if (!conversationId) {
+    // For snooze: prefer a conversation we can first force into snoozed.
+    // For age-inbound: any open conversation works.
+    const [row] = await db
+      .select({ id: schema.conversations.id })
+      .from(schema.conversations)
+      .where(
+        and(
+          eq(schema.conversations.status, "open"),
+          like(schema.conversations.ghlConversationId, "seed_%"),
+        ),
+      )
+      .limit(1);
+    if (!row) {
+      return NextResponse.json(
+        { error: "no seeded open conversation found — run /api/admin/seed first" },
+        { status: 404 },
+      );
+    }
+    conversationId = row.id;
   }
 
   if (body.action === "expire-snooze") {
+    // First force into snoozed status (so the cron sweeper considers it),
+    // with snoozed_until set to 1 minute ago.
     const result = await db
       .update(schema.conversations)
-      .set({ snoozedUntil: new Date(Date.now() - 60_000) })
-      .where(eq(schema.conversations.id, body.conversationId))
-      .returning({ id: schema.conversations.id, status: schema.conversations.status });
+      .set({
+        status: "snoozed",
+        snoozedUntil: new Date(Date.now() - 60_000),
+      })
+      .where(eq(schema.conversations.id, conversationId))
+      .returning({
+        id: schema.conversations.id,
+        status: schema.conversations.status,
+        snoozedUntil: schema.conversations.snoozedUntil,
+        locationId: schema.conversations.locationId,
+      });
     if (result.length === 0) {
       return NextResponse.json({ error: "conversation not found" }, { status: 404 });
     }
@@ -60,16 +94,42 @@ export async function POST(req: Request) {
     const result = await db
       .update(schema.conversations)
       .set({ lastInboundAt: newTs })
-      .where(eq(schema.conversations.id, body.conversationId))
-      .returning({ id: schema.conversations.id, lastInboundAt: schema.conversations.lastInboundAt });
+      .where(eq(schema.conversations.id, conversationId))
+      .returning({
+        id: schema.conversations.id,
+        lastInboundAt: schema.conversations.lastInboundAt,
+      });
     if (result.length === 0) {
       return NextResponse.json({ error: "conversation not found" }, { status: 404 });
     }
     return NextResponse.json({ ok: true, conversation: result[0] });
   }
 
+  if (body.action === "inspect") {
+    // Read-only: return current state for the given (or auto-picked) convo.
+    const [row] = await db
+      .select({
+        id: schema.conversations.id,
+        status: schema.conversations.status,
+        snoozedUntil: schema.conversations.snoozedUntil,
+        lastInboundAt: schema.conversations.lastInboundAt,
+        lastMessageAt: schema.conversations.lastMessageAt,
+        unreadCount: schema.conversations.unreadCount,
+      })
+      .from(schema.conversations)
+      .where(eq(schema.conversations.id, conversationId))
+      .limit(1);
+    if (!row) {
+      return NextResponse.json({ error: "conversation not found" }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true, conversation: row });
+  }
+
   return NextResponse.json(
-    { error: `unknown action "${body.action}" — expected "expire-snooze" or "age-inbound"` },
+    { error: `unknown action "${body.action}" — expected "expire-snooze", "age-inbound", or "inspect"` },
     { status: 400 },
   );
 }
+
+// Silence unused warnings for symbols kept for future use.
+void sql;
