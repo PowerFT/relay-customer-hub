@@ -7,6 +7,7 @@ import { MessageSquare, PanelRightOpen } from "lucide-react";
 import { ChannelRail } from "@/components/conversations/channel-rail";
 import { ContactPanel } from "@/components/conversations/contact-panel";
 import { ConversationList } from "@/components/conversations/conversation-list";
+import { PusherStatusBanner } from "@/components/conversations/pusher-status-banner";
 import { Thread } from "@/components/conversations/thread";
 import type { ChannelKey } from "@/hooks/use-channel-counts";
 import { cn } from "@/lib/utils";
@@ -62,9 +63,11 @@ export default function ConversationsPage() {
   );
 
   return (
+    <div className="flex flex-col h-[calc(100vh-60px)] min-h-0">
+    <PusherStatusBanner />
     <div
       className={cn(
-        "grid h-[calc(100vh-60px)] min-h-0",
+        "grid flex-1 min-h-0",
         panelOpen
           ? "grid-cols-[72px_340px_1fr_360px]"
           : "grid-cols-[72px_340px_1fr]",
@@ -117,6 +120,7 @@ export default function ConversationsPage() {
       ) : (
         <FloatingReopenButton onClick={() => setParam("panel", null)} />
       )}
+    </div>
     </div>
   );
 }

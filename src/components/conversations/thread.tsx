@@ -144,7 +144,7 @@ export function Thread({ conversationId }: { conversationId: string }) {
         ) : items.length === 0 ? (
           <ThreadEmptyState />
         ) : (
-          renderMessages(items)
+          renderMessages(items, conversationId)
         )}
       </div>
 
@@ -156,7 +156,7 @@ export function Thread({ conversationId }: { conversationId: string }) {
   );
 }
 
-function renderMessages(items: ThreadMessage[]) {
+function renderMessages(items: ThreadMessage[], conversationId: string) {
   const out: React.ReactNode[] = [];
   let prevDate: Date | null = null;
   for (let i = 0; i < items.length; i += 1) {
@@ -170,7 +170,14 @@ function renderMessages(items: ThreadMessage[]) {
       i === 0 ||
       items[i - 1].direction !== m.direction ||
       items[i - 1].authorId !== m.authorId;
-    out.push(<MessageBubble key={m.id} message={m} showAuthorMeta={showAuthorMeta} />);
+    out.push(
+      <MessageBubble
+        key={m.id}
+        message={m}
+        showAuthorMeta={showAuthorMeta}
+        conversationId={conversationId}
+      />,
+    );
   }
   return out;
 }
