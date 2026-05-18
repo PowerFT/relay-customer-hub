@@ -134,6 +134,11 @@ export async function runDemoSeed(opts: SeedOptions = {}): Promise<SeedResult> {
   }
   const owner = owners[0];
 
+  // Self-heal: ensure the schema columns this seed writes actually exist.
+  // displayName was added after the initial schema; until `pnpm db:push`
+  // is run, the live DB may lack it.
+  await db.execute(sql`ALTER TABLE locations ADD COLUMN IF NOT EXISTS display_name text`);
+
   if (opts.hardReset) {
     await db.execute(sql`TRUNCATE notes, messages, webhook_events, conversations, contacts, locations RESTART IDENTITY CASCADE`);
     await db.execute(sql`DELETE FROM users WHERE clerk_id LIKE 'seed_%'`);
