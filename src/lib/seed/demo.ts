@@ -128,11 +128,24 @@ export async function runDemoSeed(opts: SeedOptions = {}): Promise<SeedResult> {
     return weights[weights.length - 1][0];
   };
 
-  const owners = await db.select().from(schema.users).limit(1);
-  if (owners.length === 0) {
-    throw new Error("users table is empty — sign in to the app once first so the Clerk webhook seeds your row.");
+  // Owner = the first REAL user (Clerk-authenticated, clerk_id does not
+  // start with our seed prefix). Picking the literal first row sometimes
+  // returned an older seeded user, whose UUID would then be wiped by the
+  // cleanup below — leaving the freshly-seeded locations owned by a
+  // user that no longer exists, so /api/conversations (which scopes to
+  // `locations.created_by = $user.id`) returned zero rows.
+  const owners = await db.execute(sql`
+    SELECT * FROM users
+     WHERE clerk_id IS NULL OR clerk_id NOT LIKE 'seed_%'
+     ORDER BY created_at ASC
+     LIMIT 1
+  `);
+  const ownerRows = (owners as unknown as { rows?: Array<{ id: string; name: string | null; email: string | null }> }).rows
+    ?? (owners as unknown as Array<{ id: string; name: string | null; email: string | null }>);
+  if (ownerRows.length === 0) {
+    throw new Error("users table has no real users — sign in to the app once first so the Clerk webhook seeds your row.");
   }
-  const owner = owners[0];
+  const owner = ownerRows[0];
 
   // Self-heal: ensure the schema columns this seed writes actually exist.
   // displayName was added after the initial schema; until `pnpm db:push`
