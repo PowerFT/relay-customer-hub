@@ -10,8 +10,11 @@ function greeting() {
 }
 
 export default async function DashboardPage() {
-  const user = await getCurrentUser();
-  const firstName = user?.name?.split(" ")[0] ?? "there";
+  // TEMP: hard-coded greeting name for demo. Revert to the line below
+  // when the demo is over.
+  //   const firstName = user?.name?.split(" ")[0] ?? "there";
+  await getCurrentUser(); // still auth-gate
+  const firstName = "Mike";
   const stats = await fetchStats({ range: "7d", locationId: "all" });
 
   return (
