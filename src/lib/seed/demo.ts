@@ -195,7 +195,11 @@ export async function runDemoSeed(opts: SeedOptions = {}): Promise<SeedResult> {
         whatsappNumber: l.phone,
         accessTokenEnc: null,
         refreshTokenEnc: null,
-        createdBy: owner.id,
+        // createdBy = NULL marks this as demo data: /api/conversations and
+        // /api/channel-counts treat null-owner locations as visible to any
+        // authenticated user, so every Clerk account sees the same seeded
+        // fixtures without needing to be re-assigned per signup.
+        createdBy: null,
         status: "connected",
       })
       .returning({ id: schema.locations.id });

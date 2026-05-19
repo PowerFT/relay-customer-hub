@@ -61,10 +61,14 @@ export async function GET(req: Request) {
   if (locationId && locationId !== "all") {
     whereClauses.push(eq(schema.conversations.locationId, locationId));
   } else {
+    // Scope to locations owned by the current user, plus demo-seeded
+    // locations (created_by IS NULL — seeded fixtures are visible to any
+    // signed-in user so every Clerk account sees the same demo data).
     whereClauses.push(
       sql`${schema.conversations.locationId} IN (
         SELECT id FROM ${schema.locations}
          WHERE ${schema.locations.createdBy} = ${user.id}
+            OR ${schema.locations.createdBy} IS NULL
       )`,
     );
   }

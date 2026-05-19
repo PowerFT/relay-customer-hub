@@ -5,6 +5,7 @@ import { db, schema } from "@/db";
 import { requireCurrentUser } from "@/lib/auth";
 import { ghlClient } from "@/lib/ghl/client";
 import { publish } from "@/lib/pusher/server";
+import { locationOwnedByOrDemo } from "@/lib/scope";
 
 export const runtime = "nodejs";
 
@@ -26,7 +27,7 @@ export async function POST(
     })
     .from(schema.conversations)
     .innerJoin(schema.locations, eq(schema.locations.id, schema.conversations.locationId))
-    .where(and(eq(schema.conversations.id, id), eq(schema.locations.createdBy, user.id)))
+    .where(and(eq(schema.conversations.id, id), locationOwnedByOrDemo(user.id)))
     .limit(1);
 
   if (rows.length === 0) {

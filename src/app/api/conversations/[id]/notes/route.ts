@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { db, schema } from "@/db";
 import { requireCurrentUser } from "@/lib/auth";
 import { publish } from "@/lib/pusher/server";
+import { locationOwnedByOrDemo } from "@/lib/scope";
 
 export const runtime = "nodejs";
 
@@ -12,7 +13,7 @@ async function assertOwnership(conversationId: string, userId: string) {
     .select({ id: schema.conversations.id })
     .from(schema.conversations)
     .innerJoin(schema.locations, eq(schema.locations.id, schema.conversations.locationId))
-    .where(and(eq(schema.conversations.id, conversationId), eq(schema.locations.createdBy, userId)))
+    .where(and(eq(schema.conversations.id, conversationId), locationOwnedByOrDemo(userId)))
     .limit(1);
   return rows.length > 0;
 }

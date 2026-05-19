@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { db, schema } from "@/db";
 import { requireCurrentUser } from "@/lib/auth";
+import { locationOwnedByOrDemo } from "@/lib/scope";
 
 export const runtime = "nodejs";
 
@@ -40,7 +41,7 @@ export async function GET(
     .where(
       and(
         eq(schema.conversations.contactId, contactId),
-        eq(schema.locations.createdBy, user.id),
+        locationOwnedByOrDemo(user.id),
       ),
     )
     .orderBy(desc(schema.conversations.lastMessageAt))

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { db, schema } from "@/db";
 import { requireCurrentUser } from "@/lib/auth";
 import { publish } from "@/lib/pusher/server";
+import { locationOwnedByOrDemo } from "@/lib/scope";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ async function getOwnedConversation(id: string, userId: string) {
     })
     .from(schema.conversations)
     .innerJoin(schema.locations, eq(schema.locations.id, schema.conversations.locationId))
-    .where(and(eq(schema.conversations.id, id), eq(schema.locations.createdBy, userId)))
+    .where(and(eq(schema.conversations.id, id), locationOwnedByOrDemo(userId)))
     .limit(1);
   return rows[0] ?? null;
 }
