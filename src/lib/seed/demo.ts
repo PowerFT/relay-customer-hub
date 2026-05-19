@@ -11,7 +11,7 @@
  * seeds your row.
  */
 
-import { sql } from "drizzle-orm";
+import { asc, isNull, not, or, sql, like } from "drizzle-orm";
 
 import { db, schema } from "@/db";
 
@@ -128,20 +128,16 @@ export async function runDemoSeed(opts: SeedOptions = {}): Promise<SeedResult> {
     return weights[weights.length - 1][0];
   };
 
-  // Owner = the first REAL user (Clerk-authenticated, clerk_id does not
-  // start with our seed prefix). Picking the literal first row sometimes
-  // returned an older seeded user, whose UUID would then be wiped by the
-  // cleanup below — leaving the freshly-seeded locations owned by a
-  // user that no longer exists, so /api/conversations (which scopes to
-  // `locations.created_by = $user.id`) returned zero rows.
-  const owners = await db.execute(sql`
-    SELECT * FROM users
-     WHERE clerk_id IS NULL OR clerk_id NOT LIKE 'seed_%'
-     ORDER BY created_at ASC
-     LIMIT 1
-  `);
-  const ownerRows = (owners as unknown as { rows?: Array<{ id: string; name: string | null; email: string | null }> }).rows
-    ?? (owners as unknown as Array<{ id: string; name: string | null; email: string | null }>);
+  // Owner detection — only used for the friendly ownerName in the seed
+  // response. Seeded locations themselves are created with createdBy=NULL
+  // (demo data, visible to every signed-in user via the locationOwnedByOrDemo
+  // helper in /lib/scope.ts), so the owner row isn't load-bearing.
+  const ownerRows = await db
+    .select({ id: schema.users.id, name: schema.users.name, email: schema.users.email })
+    .from(schema.users)
+    .where(or(isNull(schema.users.clerkId), not(like(schema.users.clerkId, "seed_%"))))
+    .orderBy(asc(schema.users.createdAt))
+    .limit(1);
   if (ownerRows.length === 0) {
     throw new Error("users table has no real users — sign in to the app once first so the Clerk webhook seeds your row.");
   }
