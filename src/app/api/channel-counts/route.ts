@@ -39,10 +39,14 @@ export async function GET(req: Request) {
     whereClauses.push(eq(schema.conversations.locationId, locationId));
   } else {
     // Limit to locations created by this user (multi-user join would go here later).
+    // Scope to locations owned by the current user, plus demo-seeded
+    // locations (created_by IS NULL — seeded fixtures are visible to all
+    // real users).
     whereClauses.push(
       sql`${schema.conversations.locationId} IN (
         SELECT id FROM ${schema.locations}
          WHERE ${schema.locations.createdBy} = ${user.id}
+            OR ${schema.locations.createdBy} IS NULL
       )`,
     );
   }

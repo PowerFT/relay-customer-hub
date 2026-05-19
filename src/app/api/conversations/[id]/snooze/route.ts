@@ -5,6 +5,7 @@ import { NextResponse } from "next/server";
 import { db, schema } from "@/db";
 import { requireCurrentUser } from "@/lib/auth";
 import { publish } from "@/lib/pusher/server";
+import { locationOwnedByOrDemo } from "@/lib/scope";
 
 export const runtime = "nodejs";
 
@@ -35,7 +36,7 @@ export async function POST(
     })
     .from(schema.conversations)
     .innerJoin(schema.locations, eq(schema.locations.id, schema.conversations.locationId))
-    .where(and(eq(schema.conversations.id, id), eq(schema.locations.createdBy, actor.id)))
+    .where(and(eq(schema.conversations.id, id), locationOwnedByOrDemo(actor.id)))
     .limit(1);
 
   if (rows.length === 0) {

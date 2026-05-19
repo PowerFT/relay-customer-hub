@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
 import { db, schema } from "@/db";
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     const loc = await db.query.locations.findFirst({
       where: and(
         eq(schema.locations.id, locationId),
-        eq(schema.locations.createdBy, user.id),
+        or(eq(schema.locations.createdBy, user.id), isNull(schema.locations.createdBy))!,
       ),
     });
     if (!loc) return NextResponse.json({ error: "forbidden" }, { status: 403 });
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     const owner = await db.query.locations.findFirst({
       where: and(
         eq(schema.locations.id, conv.locationId),
-        eq(schema.locations.createdBy, user.id),
+        or(eq(schema.locations.createdBy, user.id), isNull(schema.locations.createdBy))!,
       ),
     });
     if (!owner) return NextResponse.json({ error: "forbidden" }, { status: 403 });

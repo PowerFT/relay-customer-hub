@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { db, schema } from "@/db";
 import { requireCurrentUser } from "@/lib/auth";
+import { locationOwnedByOrDemo } from "@/lib/scope";
 
 export const runtime = "nodejs";
 
@@ -48,7 +49,7 @@ export async function GET(
     .innerJoin(schema.contacts, eq(schema.contacts.id, schema.conversations.contactId))
     .innerJoin(schema.locations, eq(schema.locations.id, schema.conversations.locationId))
     .leftJoin(assignee, eq(assignee.id, schema.conversations.assigneeId))
-    .where(and(eq(schema.conversations.id, id), eq(schema.locations.createdBy, user.id)));
+    .where(and(eq(schema.conversations.id, id), locationOwnedByOrDemo(user.id)));
 
   if (rows.length === 0) {
     return NextResponse.json({ error: "not found" }, { status: 404 });
